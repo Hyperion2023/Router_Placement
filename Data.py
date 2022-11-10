@@ -61,9 +61,17 @@ class Data:
                     target_coord.append((i,j))
                     
         router_init_list = []
-        unique_randoms = random.sample(range(0, len(target_coord), min_router))
+        unique_randoms = random.sample(range(0, len(target_coord)), min_router)
         for i in unique_randoms:
             router_init_list.append(target_coord[i])
-        return router_init_list
+        self.router_list =  router_init_list
         
+        """
+        generate the mask of routers for the fitness score
+        """
+    def initial_routers_placement(self):
+        mask = np.zeros((self.matrix.shape))
+        for router in self.router_list:
+            mask[router] = 1
+        return mask
         
