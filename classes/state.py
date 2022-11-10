@@ -1,6 +1,7 @@
 import numpy as np
 import utils
 
+
 class State:
 	def __init__(
 			self,
@@ -17,7 +18,7 @@ class State:
 		router_range = configuration.router_range
 
 		# compute number of cells covered by router signal
-		covered_cells = utils.get_covered_cells(routers_placement, building_matrix, router_range)
+		number_covered_cells = utils.get_number_covered_cells(routers_placement, building_matrix, router_range)
 
 		# compute number of routers
 		number_routers = utils.get_number_routers(routers_placement)
@@ -31,7 +32,7 @@ class State:
 		backbone_cost = configuration.backbone_cost
 		budget = configuration.budget
 
-		return 1000*covered_cells + (budget - number_routers*router_cost - backbone_length*backbone_cost)
+		return 1000*number_covered_cells + (budget - number_routers*router_cost - backbone_length*backbone_cost)
 
 	def compute_fitness(
 			self,

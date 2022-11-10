@@ -3,7 +3,7 @@ import itertools
 
 __all__ = [
 	"get_number_routers",
-	"get_number_routers",
+	"get_number_covered_cells",
 	"get_backbone_length"
 ]
 
@@ -78,7 +78,7 @@ def filter_non_target_points(
 	return filtered_points
 
 
-def get_covered_cells(
+def get_number_covered_cells(
 		routers_placement: np.array,
 		building_matrix: np.array,
 		router_range: int
