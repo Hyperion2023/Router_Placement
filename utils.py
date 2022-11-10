@@ -4,7 +4,8 @@ import itertools
 __all__ = [
 	"get_number_routers",
 	"get_number_covered_cells",
-	"get_backbone_length"
+	"get_backbone_length",
+	"compute_fitness"
 ]
 
 
@@ -131,5 +132,25 @@ def get_backbone_length(
 ) -> int:
 	return 0
 
+
+def compute_fitness(
+		building_matrix: np.array,
+		routers_placement: np.array,
+		router_range: int,
+		backbone_starting_point: tuple,
+		router_cost: int,
+		backbone_cost: int,
+		budget: int
+	) -> float:
+	# compute number of cells covered by router signal
+	number_covered_cells = get_number_covered_cells(routers_placement, building_matrix, router_range)
+
+	# compute number of routers
+	number_routers = get_number_routers(routers_placement)
+
+	# compute cost of backbone connecting routers
+	backbone_length = get_backbone_length(backbone_starting_point, routers_placement)
+
+	return 1000*number_covered_cells + (budget - number_routers*router_cost - backbone_length*backbone_cost)
 
 
