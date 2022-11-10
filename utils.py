@@ -23,13 +23,13 @@ def get_points_around_router(
 	"""
 	r, c = router_coords
 	m, n = matrix.shape
-	coords = []
-	for i in np.arange(start=-router_radius, stop=router_radius+1, step=1):
-		for j in np.arange(start=-router_radius, stop=router_radius + 1, step=1):
-			# check if location is within boundary
-			if 0 <= r + i < m and 0 <= c + j < n:
-				coords.append((r + i, c + j))
-	return coords
+
+	return [
+		(r + i, c + j)
+		for i in np.arange(start=-router_radius, stop=router_radius+1, step=1)
+		for j in np.arange(start=-router_radius, stop=router_radius + 1, step=1)
+		if 0 <= r + i < m and 0 <= c + j < n
+	]
 
 
 def filter_non_target_points(
