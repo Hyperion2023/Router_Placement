@@ -154,3 +154,18 @@ def compute_fitness(
 	return 1000*number_covered_cells + (budget - number_routers*router_cost - backbone_length*backbone_cost)
 
 
+def save_output_matrix(path, building_matrix, state, score):
+	_building_matrix = np.copy(building_matrix)
+	router_coords = [ (i,j) for (i,j) in zip(*state.nonzero())]	
+	for (i, j) in router_coords:
+		_building_matrix[i][j] = 1
+	np.savetxt(path,_building_matrix, fmt="%c", delimiter='')
+	
+	f = open(path,'r+')
+	lines = f.readlines() # read old content
+	f.seek(0) # go back to the beginning of the file
+	f.write("Score: "+str(score)+"\n\n") # write new content at the beginning
+	for line in lines: # write old content after new
+		f.write(line)
+	f.close()
+	
