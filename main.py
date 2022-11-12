@@ -43,9 +43,10 @@ def main(args):
     
     elif algorithm == "annealing":
         best_configuration = simulated_annealing(
+            data=data,
             initial_state = np.zeros(building_matrix.shape),
             building_matrix = building_matrix,
-            number_iterations = 100,
+            number_iterations = utils.min_routers_optimal_condition(data=data),
             initial_temperature = 500,
             fitness_function=fitness_function,
             sigma=data.router_range
@@ -59,7 +60,8 @@ def main(args):
 
 
     coverage = utils.get_number_covered_cells(best_configuration, building_matrix, data.router_range) / data.target_area
-    print("coverge:", coverage)
+    print("coverge:", coverage, "num_routers", utils.get_number_routers(best_configuration), "min routers", utils.min_routers_optimal_condition(data=data))
+    
     utils.save_output_matrix(
         building_matrix=building_matrix, 
         state=best_configuration, 

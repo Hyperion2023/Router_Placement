@@ -1,5 +1,7 @@
 import numpy as np
 import itertools
+import Data
+import math
 
 __all__ = [
 	"get_number_routers",
@@ -169,3 +171,17 @@ def save_output_matrix(path, building_matrix, state, score):
 		f.write(line)
 	f.close()
 	
+
+def min_routers_optimal_condition(data : Data) -> int:
+    """
+    get the number of routers needed to obtain a full coverage in a perfect scenario
+    """
+
+    target_area = data.target_area
+    router_range = data.router_range
+
+    router_coverage = router_range*router_range
+    num_router = math.ceil(target_area/router_coverage)
+    return num_router
+
+
