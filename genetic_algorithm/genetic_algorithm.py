@@ -1,9 +1,3 @@
-"""
--select 2 patterns for reproduction, one possibility is to select from all individuals with probability proportional to their fitness score. Another possibility is to select them randomly
--randomly select a crossover point to split each of the parent data, and recombine the parts to form two children, one with the first part of parent 1 and the second part of parent 2;
-the other with the second part of parent 1 and the first part of parent 2.
--mutation phase: once a son has been generated, every part in its composition is flipped with probability equal to the mutation rate
-"""
 import numpy as np
 import random
 

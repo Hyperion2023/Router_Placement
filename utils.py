@@ -1,3 +1,5 @@
+import random
+
 import numpy as np
 import itertools
 
@@ -5,7 +7,8 @@ __all__ = [
 	"get_number_routers",
 	"get_number_covered_cells",
 	"get_backbone_length",
-	"compute_fitness"
+	"compute_fitness",
+	"get_random_router_placement"
 ]
 
 
@@ -154,3 +157,38 @@ def compute_fitness(
 	return 1000*number_covered_cells + (budget - number_routers*router_cost - backbone_length*backbone_cost)
 
 
+def get_random_router_placement(
+		building_matrix: np.array,
+		number_routers: int
+) -> np.array:
+	"""
+	Generates a random placement of the routers inside the building, considering the condition that
+	a router can't be placed in a wall and leveraging the fact that a router inside a void cell is unuseful
+
+	:param building_matrix: array of arrays, the matrix which describers the building structure
+	:param number_routers: int, number of routers to generate.
+	:return: returns a placement of routers containing the number of required routers
+	"""
+	n, m = building_matrix.shape
+	routers_placement = np.zeros(shape=(n, m))
+
+	generate_router_position = lambda width, height: (
+		random.randint(0, width-1),
+		random.randint(0, height-1)
+	)
+	is_target = lambda c: c == "."
+	contains_router = lambda c: c == 1
+
+	number_routers_created = 0
+	while number_routers_created < number_routers:
+		# generate a couple of random coordinates inside the building
+		i, j = generate_router_position(n, m)
+
+		# verify if the random position is suitable for containing a router; this means
+		# that the cell should be a target and must not contain a router
+
+		if is_target(building_matrix[i][j]) and not contains_router(routers_placement[i][j]):
+			routers_placement[i][j] = 1
+			number_routers_created += 1
+
+	return routers_placement

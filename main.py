@@ -48,10 +48,8 @@ def main(args):
     best_configuration = genetic_algorithm(
         building_matrix=building_matrix,
         population=[
-            np.zeros(building_matrix.shape),
-            np.zeros(building_matrix.shape),
-            np.zeros(building_matrix.shape),
-            np.zeros(building_matrix.shape)
+            utils.get_random_router_placement(building_matrix, 10),
+            utils.get_random_router_placement(building_matrix, 20)
         ],
         fitness_function=fitness_function,
         mutation_probability=0.4,
