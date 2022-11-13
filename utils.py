@@ -1,5 +1,5 @@
 import random
-
+import networkx as nx
 import numpy as np
 import itertools
 
@@ -7,6 +7,7 @@ __all__ = [
 	"get_number_routers",
 	"get_number_covered_cells",
 	"get_backbone_length",
+	"get_backbone_graph",
 	"compute_fitness",
 	"get_random_router_placement"
 ]
@@ -129,11 +130,54 @@ def get_number_routers(
 	return np.count_nonzero(routers_placement)
 
 
+def get_backbone_graph(
+		backbone_starting_point: tuple,
+		routers_placement: np.array
+) :
+	"""
+	Finds an approximation of the minimum sized graph connecting all the routers and the backbone starting point; this
+	is done by searching for the Steiner minimum spanning tree.
+
+	:param backbone_starting_point: tuple of ints, the x,y coordinates of the backbone starting point inside the matrix
+	:param routers_placement: array of arrays, the matrix describing the placement of routers inside the building
+	:return: the minimum sized graph that connects all the routers and the starting point
+	"""
+	# creating the equivalent grid graph for the routers placement
+	g = nx.grid_graph(dim=routers_placement.shape)
+
+	# finding routers coordinates inside the matrix
+	rows, columns = np.nonzero(routers_placement)
+	routers_coords = [
+		(x, y)
+		for (x, y) in zip(rows, columns)
+	]
+	# adding backbone as router
+	routers_coords.append(backbone_starting_point)
+
+	# searching for the steiner minimum spanning tree that connects all the routers and the starting point
+	minimum_spanning_tree_g = nx.approximation.steiner_tree(g, terminal_nodes=routers_coords)
+
+	return minimum_spanning_tree_g
+
+
 def get_backbone_length(
 		backbone_starting_point: tuple,
 		routers_placement: np.array
 ) -> int:
-	return 0
+	"""
+	Returns the length of the minimum sized graph connecting all the routers and the backbone starting point; this
+	is done by searching for the Steiner minimum spanning tree.
+
+	:param backbone_starting_point: tuple of ints, the x,y coordinates of the backbone starting point inside the matrix
+	:param routers_placement: array of arrays, the matrix describing the placement of routers inside the building
+	:return: the len of the minimum sized graph that connects all the routers and the starting point
+	"""
+	return len(
+		get_backbone_graph(
+			backbone_starting_point,
+			routers_placement
+		)
+	)
 
 
 def compute_fitness(

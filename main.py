@@ -22,19 +22,8 @@ def main(args):
     building_matrix = data.matrix
     router_radius = 7
 
-    """
-    routers_to_generate = 700
-    i = 0
-    while i < routers_to_generate:
-        m, n = building_matrix.shape
-        x = random.randint(0, m-1)
-        y = random.randint(0, n-1)
-
-        if building_matrix[x][y] == "." and routers_placement[x][y] == 0:
-            routers_placement[x][y] = 1
-            i += 1
-
-    print(utils.get_number_covered_cells(routers_placement, building_matrix, router_radius))
+    router_placement = utils.get_random_router_placement(building_matrix, 10)
+    g = utils.get_backbone_graph((0, 0), router_placement)
     """
     fitness_function = lambda routers: utils.compute_fitness(
         building_matrix=building_matrix,
@@ -57,6 +46,7 @@ def main(args):
         verbose=True
     )
     print(utils.get_number_covered_cells(best_configuration, building_matrix, router_radius))
+    """
 
 
 if __name__  == "__main__":
