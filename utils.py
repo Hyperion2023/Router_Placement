@@ -142,7 +142,19 @@ def get_backbone_graph(
 	:return: the minimum sized graph that connects all the routers and the starting point
 	"""
 	# creating the equivalent grid graph for the routers placement
-	g = nx.grid_graph(dim=routers_placement.shape)
+	# g = nx.grid_graph(dim=routers_placement.shape)
+	n, m = routers_placement.shape
+	g = nx.grid_2d_graph(n, m)
+
+	g.add_edges_from([
+		((x, y), (x + 1, y + 1))
+		for x in range(n-1)
+		for y in range(m-1)
+	] + [
+		((x + 1, y), (x, y + 1))
+		for x in range(n-1)
+		for y in range(m-1)
+	])
 
 	# finding routers coordinates inside the matrix
 	rows, columns = np.nonzero(routers_placement)
