@@ -135,8 +135,7 @@ def get_backbone_graph(
 		routers_placement: np.array
 ) :
 	"""
-	Finds an approximation of the minimum sized graph connecting all the routers and the backbone starting point; this
-	is done by searching for the Steiner minimum spanning tree.
+	Finds an approximation of the minimum sized graph connecting all the routers and the backbone starting point.
 
 	:param backbone_starting_point: tuple of ints, the x,y coordinates of the backbone starting point inside the matrix
 	:param routers_placement: array of arrays, the matrix describing the placement of routers inside the building
@@ -154,10 +153,19 @@ def get_backbone_graph(
 	# adding backbone as router
 	routers_coords.append(backbone_starting_point)
 
-	# searching for the steiner minimum spanning tree that connects all the routers and the starting point
-	minimum_spanning_tree_g = nx.approximation.steiner_tree(g, terminal_nodes=routers_coords)
+	# applying minimum spanning tree algorithm
+	mst_g = nx.minimum_spanning_tree(g)
 
-	return minimum_spanning_tree_g
+	made_cuts = True
+	while made_cuts:
+		made_cuts = False
+		nodes = list(mst_g.nodes())
+		for node in nodes:
+			if node not in routers_coords and mst_g.degree(node) == 1:
+				mst_g.remove_node(node)
+				made_cuts = True
+
+	return mst_g
 
 
 def get_backbone_length(
