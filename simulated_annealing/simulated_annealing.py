@@ -70,6 +70,7 @@ def simulated_annealing(
 
     curret_temperature = initial_temperature
     current_state = initial_state
+    currennt_fitness = fitness_function(current_state)
 
     for i in range(number_iterations): # the termination condition could be also related to the temperature
 
@@ -81,14 +82,17 @@ def simulated_annealing(
             move_type=move_type
             )
 
-        delta_fitness = fitness_function(new_state) - fitness_function(current_state)
+        new_fitness = fitness_function(new_state)
+        delta_fitness = new_fitness - currennt_fitness
        
         if delta_fitness >= 0: # new state is better
             current_state = new_state # set the new state
+            currennt_fitness = new_fitness
         
         elif rm.uniform(0,1) < np.exp(delta_fitness / curret_temperature): # delta_fitness < 0, so this is equivalent to 1 / e^ sigma * (|delta_fitness|/current_temperature)
             #print("Iteration", i, "delta fitness", delta_fitness, "prob of accept bad fitness:", np.exp(sigma * delta_fitness / curret_temperature))
             current_state = new_state
+            currennt_fitness = new_fitness
         
         else:
             pass

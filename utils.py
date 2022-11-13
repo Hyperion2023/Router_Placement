@@ -1,7 +1,9 @@
 import numpy as np
 import itertools
 import Data
+import networkx as nx
 import math
+import matplotlib.pyplot as plt
 
 __all__ = [
 	"get_number_routers",
@@ -130,9 +132,44 @@ def get_number_routers(
 
 def get_backbone_length(
 		backbone_starting_point: tuple,
-		routers_placement: np.array
+		routers_placement: np.array,
+		building_matrix: np.array
 ) -> int:
+
 	return 0
+
+	G = nx.Graph()
+
+	shape = building_matrix.shape
+
+
+	# create a "full connectet" network with the same shape as the building matrix, exluding the void cells
+	for i in range(shape[0]): #rows
+		for j in range(shape[1]): #columns
+			
+			if (building_matrix[i][j] == "-"):
+				continue # skip this iteration
+
+			G.add_node((i, j), type=building_matrix[i][j])
+			if (j != 0) and (building_matrix[i][j-1] != "-"): #not the first column and the left one is not void
+				G.add_edge( (i, j-1) , (i  , j) , weight=1) # edge with the left one
+			if (i != 0) and (building_matrix[i-1][j] != "-"): #not the first row and the above one is not void
+				G.add_edge( (i-1, j ) , (i, j), weight=1) # edge with the above one
+	
+	router_coords = routers_placement.nonzero()
+
+	router_coords = [(i, j) for (i, j) in zip(router_coords[0], router_coords[1]) ]
+
+	router_coords.append(backbone_starting_point)
+
+	print("calculating steiner")
+
+	tree = nx.approximation.steiner_tree(G, terminal_nodes=router_coords)
+
+	backbone = tree.size(weight="weight")
+	print(backbone)
+
+	return backbone
 
 
 def compute_fitness(
@@ -151,7 +188,7 @@ def compute_fitness(
 	number_routers = get_number_routers(routers_placement)
 
 	# compute cost of backbone connecting routers
-	backbone_length = get_backbone_length(backbone_starting_point, routers_placement)
+	backbone_length = get_backbone_length(backbone_starting_point, routers_placement, building_matrix=building_matrix)
 
 	return 1000*number_covered_cells + (budget - number_routers*router_cost - backbone_length*backbone_cost)
 
