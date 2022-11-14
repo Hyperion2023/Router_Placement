@@ -14,18 +14,25 @@ def mutate(building_matrix: np.array, routers_placement: np.array) -> np.array:
 		cell is 1 if there is a router, else 0
 	"""
 	is_wall = lambda c: c == "#"
+	is_void = lambda c: c == "-"
 	flip_cell = lambda c: 1 if c == 0 else 0
 
 	new_routers_placement = np.array(routers_placement)
 
 	for (row_index, row) in enumerate(new_routers_placement):  # iterate over all rows
+		# if the row is all invalid cells (void/walls) then skip to next_row
+		if "." not in np.unique(row):
+			continue
+
 		# generate a random (valid) position inside row
 		invalid_cell_to_flip = True
 		while invalid_cell_to_flip:
 			flipping_position = random.randint(0, len(row)-1)
+			cell = building_matrix[row_index][flipping_position]
 
-			# checks if it is a wall
-			invalid_cell_to_flip = True if is_wall(building_matrix[row_index][flipping_position]) else False
+			# checks if it is a wall or void
+			if is_wall(cell) or is_void(cell):
+				invalid_cell_to_flip = True
 
 		# flip cell
 		new_routers_placement[row_index][flipping_position] = flip_cell(new_routers_placement[row_index][flipping_position])
