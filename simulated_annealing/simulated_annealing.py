@@ -49,7 +49,8 @@ def simulated_annealing(
         initial_temperature : int, 
         building_matrix : np.array, 
         fitness_function,
-        sigma
+        sigma,
+        verbose=True
     ) -> np.array:
 
     """" simulated annealing
@@ -73,6 +74,8 @@ def simulated_annealing(
     currennt_fitness = fitness_function(current_state)
 
     for i in range(number_iterations): # the termination condition could be also related to the temperature
+        if verbose:
+            print(f"ITERAZIONE {i}")
 
         move_type = "add" if utils.get_number_routers(current_state) < min_routers else "random"
         

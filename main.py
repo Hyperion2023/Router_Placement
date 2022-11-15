@@ -1,7 +1,9 @@
 import utils
 import numpy as np
 import argparse
+import viz
 from Data import Data
+from simulated_annealing import simulated_annealing
 from genetic_algorithm import genetic_algorithm
 
 
@@ -11,31 +13,6 @@ def main(args):
 
     data = Data(filepath)
 
-    if algorithm == "genetic":
-        # genetic_algorithm()
-        pass
-    elif algorithm == "annealing":
-        pass
-    elif algorithm == "hill_climbing":
-        pass
-
-    building_matrix = data.matrix
-    router_radius = 7
-
-    """
-    routers_to_generate = 700
-    i = 0
-    while i < routers_to_generate:
-        m, n = building_matrix.shape
-        x = random.randint(0, m-1)
-        y = random.randint(0, n-1)
-
-        if building_matrix[x][y] == "." and routers_placement[x][y] == 0:
-            routers_placement[x][y] = 1
-            i += 1
-
-    print(utils.get_number_covered_cells(routers_placement, building_matrix, router_radius))
-    """
     fitness_function = lambda routers: utils.compute_fitness(
         building_matrix=building_matrix,
         routers_placement=routers,
@@ -45,20 +22,42 @@ def main(args):
         backbone_cost=data.backbone_cost,
         budget=data.budget
     )
-    best_configuration = genetic_algorithm(
-        building_matrix=building_matrix,
-        population=[
-            np.zeros(building_matrix.shape),
-            np.zeros(building_matrix.shape),
-            np.zeros(building_matrix.shape),
-            np.zeros(building_matrix.shape)
-        ],
-        fitness_function=fitness_function,
-        mutation_probability=0.4,
-        max_iter=10,
-        verbose=True
-    )
-    print(utils.get_number_covered_cells(best_configuration, building_matrix, router_radius))
+
+    building_matrix = data.matrix
+    router_radius = data.router_range
+
+    if algorithm == "genetic":
+        best_configuration = genetic_algorithm(
+            building_matrix=building_matrix,
+            population=[
+                np.zeros(building_matrix.shape),
+                np.zeros(building_matrix.shape),
+                np.zeros(building_matrix.shape),
+                np.zeros(building_matrix.shape)
+            ],
+            fitness_function=fitness_function,
+            mutation_probability=0.4,
+            max_iter=10,
+            verbose=True
+        )
+    elif algorithm == "annealing":
+        best_configuration = simulated_annealing(
+            data=data,
+            initial_state=np.zeros(building_matrix.shape),
+            number_iterations=10,
+            initial_temperature=500,
+            building_matrix=building_matrix,
+            fitness_function=fitness_function,
+            sigma=router_radius,
+            verbose=True
+        )
+    elif algorithm == "hill_climbing":
+        pass
+    else:
+        return
+
+    backbone = utils.get_backbone_graph(data.initial_backbone, best_configuration)
+    viz.plot_solution(building_matrix, best_configuration, backbone.nodes())
 
 
 if __name__  == "__main__":
