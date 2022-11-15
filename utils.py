@@ -1,3 +1,4 @@
+import random
 import numpy as np
 import itertools
 import Data
@@ -9,7 +10,9 @@ __all__ = [
 	"get_number_routers",
 	"get_number_covered_cells",
 	"get_backbone_length",
-	"compute_fitness"
+	"get_backbone_graph",
+	"compute_fitness",
+	"get_random_router_placement"
 ]
 
 
@@ -130,46 +133,74 @@ def get_number_routers(
 	return np.count_nonzero(routers_placement)
 
 
+def get_backbone_graph(
+		backbone_starting_point: tuple,
+		routers_placement: np.array
+) :
+	"""
+	Finds an approximation of the minimum sized graph connecting all the routers and the backbone starting point.
+
+	:param backbone_starting_point: tuple of ints, the x,y coordinates of the backbone starting point inside the matrix
+	:param routers_placement: array of arrays, the matrix describing the placement of routers inside the building
+	:return: the minimum sized graph that connects all the routers and the starting point
+	"""
+	# creating the equivalent grid graph for the routers placement
+	# g = nx.grid_graph(dim=routers_placement.shape)
+	n, m = routers_placement.shape
+	g = nx.grid_2d_graph(n, m)
+
+	g.add_edges_from([
+		((x, y), (x + 1, y + 1))
+		for x in range(n-1)
+		for y in range(m-1)
+	] + [
+		((x + 1, y), (x, y + 1))
+		for x in range(n-1)
+		for y in range(m-1)
+	])
+
+	# finding routers coordinates inside the matrix
+	rows, columns = np.nonzero(routers_placement)
+	routers_coords = [
+		(x, y)
+		for (x, y) in zip(rows, columns)
+	]
+	# adding backbone as router
+	routers_coords.append(backbone_starting_point)
+
+	# applying minimum spanning tree algorithm
+	mst_g = nx.minimum_spanning_tree(g)
+
+	made_cuts = True
+	while made_cuts:
+		made_cuts = False
+		nodes = list(mst_g.nodes())
+		for node in nodes:
+			if node not in routers_coords and mst_g.degree(node) == 1:
+				mst_g.remove_node(node)
+				made_cuts = True
+
+	return mst_g
+
+
 def get_backbone_length(
 		backbone_starting_point: tuple,
-		routers_placement: np.array,
-		building_matrix: np.array
+		routers_placement: np.array
 ) -> int:
+	"""
+	Returns the length of the minimum sized graph connecting all the routers and the backbone starting point; this
+	is done by searching for the Steiner minimum spanning tree.
 
-	return 0
-
-	G = nx.Graph()
-
-	shape = building_matrix.shape
-
-
-	# create a "full connectet" network with the same shape as the building matrix, exluding the void cells
-	for i in range(shape[0]): #rows
-		for j in range(shape[1]): #columns
-			
-			if (building_matrix[i][j] == "-"):
-				continue # skip this iteration
-
-			G.add_node((i, j), type=building_matrix[i][j])
-			if (j != 0) and (building_matrix[i][j-1] != "-"): #not the first column and the left one is not void
-				G.add_edge( (i, j-1) , (i  , j) , weight=1) # edge with the left one
-			if (i != 0) and (building_matrix[i-1][j] != "-"): #not the first row and the above one is not void
-				G.add_edge( (i-1, j ) , (i, j), weight=1) # edge with the above one
-	
-	router_coords = routers_placement.nonzero()
-
-	router_coords = [(i, j) for (i, j) in zip(router_coords[0], router_coords[1]) ]
-
-	router_coords.append(backbone_starting_point)
-
-	print("calculating steiner")
-
-	tree = nx.approximation.steiner_tree(G, terminal_nodes=router_coords)
-
-	backbone = tree.size(weight="weight")
-	print(backbone)
-
-	return backbone
+	:param backbone_starting_point: tuple of ints, the x,y coordinates of the backbone starting point inside the matrix
+	:param routers_placement: array of arrays, the matrix describing the placement of routers inside the building
+	:return: the len of the minimum sized graph that connects all the routers and the starting point
+	"""
+	return len(
+		get_backbone_graph(
+			backbone_starting_point,
+			routers_placement
+		)
+	)
 
 
 def compute_fitness(
@@ -188,18 +219,54 @@ def compute_fitness(
 	number_routers = get_number_routers(routers_placement)
 
 	# compute cost of backbone connecting routers
-	backbone_length = get_backbone_length(backbone_starting_point, routers_placement, building_matrix=building_matrix)
+	backbone_length = get_backbone_length(backbone_starting_point, routers_placement)
 
 	return 1000*number_covered_cells + (budget - number_routers*router_cost - backbone_length*backbone_cost)
 
 
+def get_random_router_placement(
+		building_matrix: np.array,
+		number_routers: int
+) -> np.array:
+	"""
+	Generates a random placement of the routers inside the building, considering the condition that
+	a router can't be placed in a wall and leveraging the fact that a router inside a void cell is unuseful
+
+	:param building_matrix: array of arrays, the matrix which describers the building structure
+	:param number_routers: int, number of routers to generate.
+	:return: returns a placement of routers containing the number of required routers
+	"""
+	n, m = building_matrix.shape
+	routers_placement = np.zeros(shape=(n, m))
+
+	generate_router_position = lambda width, height: (
+		random.randint(0, width-1),
+		random.randint(0, height-1)
+	)
+	is_target = lambda c: c == "."
+	contains_router = lambda c: c == 1
+
+	number_routers_created = 0
+	while number_routers_created < number_routers:
+		# generate a couple of random coordinates inside the building
+		i, j = generate_router_position(n, m)
+
+		# verify if the random position is suitable for containing a router; this means
+		# that the cell should be a target and must not contain a router
+
+		if is_target(building_matrix[i][j]) and not contains_router(routers_placement[i][j]):
+			routers_placement[i][j] = 1
+			number_routers_created += 1
+
+	return routers_placement
+
 def save_output_matrix(path, building_matrix, state, score):
 	_building_matrix = np.copy(building_matrix)
-	router_coords = [ (i,j) for (i,j) in zip(*state.nonzero())]	
+	router_coords = [ (i,j) for (i,j) in zip(*state.nonzero())]
 	for (i, j) in router_coords:
 		_building_matrix[i][j] = 1
 	np.savetxt(path,_building_matrix, fmt="%c", delimiter='')
-	
+
 	f = open(path,'r+')
 	lines = f.readlines() # read old content
 	f.seek(0) # go back to the beginning of the file
@@ -207,7 +274,7 @@ def save_output_matrix(path, building_matrix, state, score):
 	for line in lines: # write old content after new
 		f.write(line)
 	f.close()
-	
+
 
 def min_routers_optimal_condition(data : Data) -> int:
     """
