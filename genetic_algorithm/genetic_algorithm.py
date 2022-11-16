@@ -1,7 +1,6 @@
 import numpy as np
 import random
 
-
 __all__ = ["genetic_algorithm"]
 
 
@@ -19,9 +18,9 @@ def mutate(building_matrix: np.array, routers_placement: np.array) -> np.array:
 
 	new_routers_placement = np.array(routers_placement)
 
-	for (row_index, row) in enumerate(new_routers_placement):  # iterate over all rows
+	for (row_index, row) in enumerate(building_matrix):  # iterate over all rows
 		# if the row is all invalid cells (void/walls) then skip to next_row
-		if "." not in np.unique(row):
+		if "." not in row:
 			continue
 
 		# generate a random (valid) position inside row
@@ -29,10 +28,9 @@ def mutate(building_matrix: np.array, routers_placement: np.array) -> np.array:
 		while invalid_cell_to_flip:
 			flipping_position = random.randint(0, len(row)-1)
 			cell = building_matrix[row_index][flipping_position]
-
 			# checks if it is a wall or void
-			if is_wall(cell) or is_void(cell):
-				invalid_cell_to_flip = True
+			if not is_wall(cell) and not is_void(cell):
+				invalid_cell_to_flip = False
 
 		# flip cell
 		new_routers_placement[row_index][flipping_position] = flip_cell(new_routers_placement[row_index][flipping_position])
