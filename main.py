@@ -43,7 +43,7 @@ def main(args):
         best_configuration = simulated_annealing(
             data=data,
             initial_state=np.zeros(building_matrix.shape),
-            number_iterations=10,
+            number_iterations=5,
             initial_temperature=500,
             building_matrix=building_matrix,
             fitness_function=fitness_function,
@@ -60,7 +60,12 @@ def main(args):
         best_configuration,
         data.backbone_cost
     )
-    viz.plot_solution(building_matrix, best_configuration, [_ for _ in g.nodes()])
+    viz.plot_solution(
+        building_matrix,
+        best_configuration,
+        [_ for _ in g.nodes()],
+        data.initial_backbone
+    )
 
 
 if __name__  == "__main__":

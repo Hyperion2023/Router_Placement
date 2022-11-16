@@ -5,7 +5,8 @@ import numpy as np
 def plot_solution(
 		building_matrix: np.array,
 		routers_placement: np.array,
-		backbone_nodes: list
+		backbone_nodes: list,
+		backbone_starting_point: tuple
 ):
 	# creating matrix for plot
 	plot_matrix = np.zeros(shape=building_matrix.shape)
@@ -26,6 +27,10 @@ def plot_solution(
 	for (i, j) in backbone_nodes:
 		if plot_matrix[i][j] == 0 or plot_matrix[i][j] == 20:
 			plot_matrix[i][j] = 40
+
+	# adding backbone starting point
+	x, y = backbone_starting_point
+	plot_matrix[x][y] = 50
 
 	plt.matshow(plot_matrix)
 	plt.show()
