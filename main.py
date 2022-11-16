@@ -46,7 +46,7 @@ def main(args):
             data=data,
             initial_state = np.zeros(building_matrix.shape),
             building_matrix = building_matrix,
-            number_iterations = utils.min_routers_optimal_condition(data=data),
+            number_iterations = 10, #utils.min_routers_optimal_condition(data=data),
             initial_temperature = 500,
             fitness_function=fitness_function,
             sigma=data.router_range
