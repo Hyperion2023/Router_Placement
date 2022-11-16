@@ -2,6 +2,7 @@ import utils
 import numpy as np
 import argparse
 import viz
+import backbone
 from Data import Data
 from simulated_annealing import simulated_annealing
 from genetic_algorithm import genetic_algorithm
@@ -30,14 +31,12 @@ def main(args):
         best_configuration = genetic_algorithm(
             building_matrix=building_matrix,
             population=[
-                np.zeros(building_matrix.shape),
-                np.zeros(building_matrix.shape),
-                np.zeros(building_matrix.shape),
-                np.zeros(building_matrix.shape)
+                utils.get_random_router_placement(building_matrix, 10),
+                utils.get_random_router_placement(building_matrix, 10)
             ],
             fitness_function=fitness_function,
-            mutation_probability=0.4,
-            max_iter=10,
+            mutation_probability=0.5,
+            max_iter=5,
             verbose=True
         )
     elif algorithm == "annealing":
@@ -56,8 +55,12 @@ def main(args):
     else:
         return
 
-    backbone = utils.get_backbone_graph(data.initial_backbone, best_configuration)
-    viz.plot_solution(building_matrix, best_configuration, backbone.nodes())
+    g = backbone.get_backbone_graph(
+        data.initial_backbone,
+        best_configuration,
+        data.backbone_cost
+    )
+    viz.plot_solution(building_matrix, best_configuration, [_ for _ in g.nodes()])
 
 
 if __name__  == "__main__":

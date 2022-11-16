@@ -1,16 +1,14 @@
 import random
 import numpy as np
-import itertools
 import Data
-import networkx as nx
 import math
-import matplotlib.pyplot as plt
+import backbone
+import itertools
+
 
 __all__ = [
 	"get_number_routers",
 	"get_number_covered_cells",
-	"get_backbone_length",
-	"get_backbone_graph",
 	"compute_fitness",
 	"get_random_router_placement"
 ]
@@ -133,76 +131,6 @@ def get_number_routers(
 	return np.count_nonzero(routers_placement)
 
 
-def get_backbone_graph(
-		backbone_starting_point: tuple,
-		routers_placement: np.array
-) :
-	"""
-	Finds an approximation of the minimum sized graph connecting all the routers and the backbone starting point.
-
-	:param backbone_starting_point: tuple of ints, the x,y coordinates of the backbone starting point inside the matrix
-	:param routers_placement: array of arrays, the matrix describing the placement of routers inside the building
-	:return: the minimum sized graph that connects all the routers and the starting point
-	"""
-	# creating the equivalent grid graph for the routers placement
-	# g = nx.grid_graph(dim=routers_placement.shape)
-	n, m = routers_placement.shape
-	g = nx.grid_2d_graph(n, m)
-
-	g.add_edges_from([
-		((x, y), (x + 1, y + 1))
-		for x in range(n-1)
-		for y in range(m-1)
-	] + [
-		((x + 1, y), (x, y + 1))
-		for x in range(n-1)
-		for y in range(m-1)
-	])
-
-	# finding routers coordinates inside the matrix
-	rows, columns = np.nonzero(routers_placement)
-	routers_coords = [
-		(x, y)
-		for (x, y) in zip(rows, columns)
-	]
-	# adding backbone as router
-	routers_coords.append(backbone_starting_point)
-
-	# applying minimum spanning tree algorithm
-	mst_g = nx.minimum_spanning_tree(g)
-
-	made_cuts = True
-	while made_cuts:
-		made_cuts = False
-		nodes = list(mst_g.nodes())
-		for node in nodes:
-			if node not in routers_coords and mst_g.degree(node) == 1:
-				mst_g.remove_node(node)
-				made_cuts = True
-
-	return mst_g
-
-
-def get_backbone_length(
-		backbone_starting_point: tuple,
-		routers_placement: np.array
-) -> int:
-	"""
-	Returns the length of the minimum sized graph connecting all the routers and the backbone starting point; this
-	is done by searching for the Steiner minimum spanning tree.
-
-	:param backbone_starting_point: tuple of ints, the x,y coordinates of the backbone starting point inside the matrix
-	:param routers_placement: array of arrays, the matrix describing the placement of routers inside the building
-	:return: the len of the minimum sized graph that connects all the routers and the starting point
-	"""
-	return len(
-		get_backbone_graph(
-			backbone_starting_point,
-			routers_placement
-		)
-	)
-
-
 def compute_fitness(
 		building_matrix: np.array,
 		routers_placement: np.array,
@@ -219,7 +147,11 @@ def compute_fitness(
 	number_routers = get_number_routers(routers_placement)
 
 	# compute cost of backbone connecting routers
-	backbone_length = get_backbone_length(backbone_starting_point, routers_placement)
+	backbone_length = backbone.get_backbone_length(
+		backbone_starting_point,
+		routers_placement,
+		backbone_cost
+	)
 
 	return 1000*number_covered_cells + (budget - number_routers*router_cost - backbone_length*backbone_cost)
 
@@ -259,6 +191,7 @@ def get_random_router_placement(
 			number_routers_created += 1
 
 	return routers_placement
+
 
 def save_output_matrix(path, building_matrix, state, score):
 	_building_matrix = np.copy(building_matrix)
