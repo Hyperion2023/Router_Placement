@@ -152,8 +152,15 @@ def compute_fitness(
 		routers_placement,
 		backbone_cost
 	)
+	
+	total_cost = number_routers*router_cost + backbone_length*backbone_cost
 
-	return 1000*number_covered_cells + (budget - number_routers*router_cost - backbone_length*backbone_cost)
+	score = 1000 * number_covered_cells + (budget - total_cost )
+
+	if total_cost > budget:
+		print(f"WARNING: OUT OF BUDGET")
+	
+	return score
 
 
 def get_random_router_placement(

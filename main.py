@@ -42,8 +42,11 @@ def main(args):
     elif algorithm == "annealing":
         best_configuration = simulated_annealing(
             data=data,
-            initial_state=np.zeros(building_matrix.shape),
-            number_iterations=5,
+            initial_state=utils.get_random_router_placement(
+                building_matrix=building_matrix,
+                number_routers= int(1.2 * utils.min_routers_optimal_condition(data=data))
+            ),
+            number_iterations=40,
             initial_temperature=500,
             building_matrix=building_matrix,
             fitness_function=fitness_function,
@@ -60,6 +63,18 @@ def main(args):
         best_configuration,
         data.backbone_cost
     )
+
+    print(f"coverage = {utils.get_number_covered_cells(best_configuration, data.matrix, data.router_range)/data.target_area}")
+    print("total score", utils.compute_fitness(
+        building_matrix=building_matrix,
+        routers_placement=best_configuration,
+        router_range=data.router_range,
+        backbone_starting_point=data.initial_backbone,
+        router_cost=data.router_cost,
+        backbone_cost=data.backbone_cost,
+        budget=data.budget
+    ) )
+
     viz.plot_solution(
         building_matrix,
         best_configuration,
