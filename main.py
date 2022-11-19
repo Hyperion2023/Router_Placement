@@ -41,13 +41,15 @@ def main():
             best_routers_settings = copy(data.router_list)
             break
         if temp_score > max_score:
+            # todo
+            # here we should take in consideration also the cost
             max_score = temp_score
             best_routers_settings = copy(data.router_list)
         data.random_init()
         router_mask = data.initial_routers_placement()
             
     print("FINAL CONFIGURATION: ")
-    print_routers(data.matrix, data.router_list)
+    print_routers(data.matrix, best_routers_settings)
 
 
 
