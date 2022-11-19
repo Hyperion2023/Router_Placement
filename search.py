@@ -14,6 +14,7 @@ class Action(Enum):
     RIGHT = (0, 1)
     UP = (-1, 0)
     DOWN = (1, 0)
+    ADD = (0, 0)
 
 class Policy(Enum):
     GREEDY = 1
@@ -141,7 +142,7 @@ def best_move(actual_score, map_mask, building_matrix, router_list, range):
         map_mask[start_coord[0], start_coord[1]] = 1
     return best_move_set
     
-def add_router(map_mask, building_matrix, router_list)->list:
+def add_router(map_mask, building_matrix, router_list, _range):
     """
     add a router in one of the target area still to be covered by routers
 
@@ -150,17 +151,18 @@ def add_router(map_mask, building_matrix, router_list)->list:
         map_mask (np.array): the mask of routers in the matrix
         building_matrix (np.array): the matrix representation of the building
         router_list (list): the list of router coordinates
+        _range (int): coverage range of the routers
 
     Returns:
-        list: router list
+        np.array, list: mask of routers and the new router list
     """
     covered_cells = set()
-    for router_coords in zip(*router_list.nonzero()):
+    for router_coords in zip(*map_mask.nonzero()):
         # compute points covered by the router
         points_covered_by_router = get_points_around_router(
             map_mask,
             router_coords,
-            range
+            _range
         )
         # filter points covered by walls and void cells
         points_covered_by_router = filter_non_target_points(
@@ -177,14 +179,21 @@ def add_router(map_mask, building_matrix, router_list)->list:
             if item == '.':
                 target_coord.add((i,j))
     
-    to_cover = target_coord.difference(covered_cell)
+    to_cover = target_coord-covered_cells
+    # print("target_coord: {}".format(target_coord))
+    # print("target_coord.type: {}".format(type(target_coord)))
+    # print("covered_cells: {}".format(covered_cells))
+    # print("covered_cells.type: {}".format(type(covered_cells)))
+    # print("to_cover: {}".format(to_cover))
     if len(to_cover) == 0:
         # no need to add router
         # since all cells are covered
-        return router_list
-    i = random.sample(range(0, len(to_cover)), 1)
-    router_list.add(to_cover[i])
-    return router_list
+        return map_mask, router_list
+    i = random.sample(range(len(to_cover)), 1)
+    new_router = to_cover[i]
+    router_list.add(new_router)
+    map_mask[new_router[0], new_router[1]] = 1
+    return map_mask, router_list
     
     
 def optimization_step(map_mask, building_matrix, router_list, range, policy, verbose=True):
@@ -215,8 +224,16 @@ def optimization_step(map_mask, building_matrix, router_list, range, policy, ver
     else:
         raise NotValidPolicyExcception("Not a valid policy")
     if len(move_set) != 3:
-        print("no improving action")
-        return 0
+        # try to add a new router
+        print("trying to add new router...", end="")
+        map_mask, router_list = add_router(map_mask, building_matrix, router_list, range)
+        add_score = get_covered_cells(map_mask, building_matrix, range)
+        if add_score == score:
+            print("no improving action")
+            return 0
+        print("success")
+        move_set = (len(router_list)-1, Action.ADD, add_score)
+        
     chosen_router = router_list[move_set[0]]
 
     map_mask[chosen_router[0], chosen_router[1]] = 0
@@ -254,7 +271,7 @@ def optimization_step_2(map_mask, building_matrix, router_list, range, policy, v
     per_action_score = {}
     # todo
     
-    for router_coords in zip(*router_list.nonzero()):
+    for router_coords in zip(*map_mask.nonzero()):
         # compute points covered by the router
         points_covered_by_router = get_points_around_router(
             map_mask,
