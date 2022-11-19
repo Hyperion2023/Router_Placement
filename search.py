@@ -35,6 +35,21 @@ def move(router: list,
     router[0] = router[0] + action.value[0]
     router[1] = router[1] + action.value[1]
     return router
+
+def restore_move(router: list,
+                 action: Action) ->list:
+    """restore the position of the router that have taken actio
+
+    Args:
+        router (list): the router coordinate
+        action (Action): action taken from Action
+
+    Returns:
+        list: new coordinate for router
+    """
+    router[0] = router[0] - action.value[0]
+    router[1] = router[1] - action.value[1]
+    return router 
     
 def greedy_move(actual_score, map_mask, building_matrix, router_list)->set:
     """
@@ -59,7 +74,8 @@ def greedy_move(actual_score, map_mask, building_matrix, router_list)->set:
             # violating the boundary, should be reset
             # print("check: router[0]: {} >= boundary[0]{} ? ".format(router[0], boundary[0]))
             if router[0] >= boundary[0] or router[0] < 0:
-                router = [start_coord[0], start_coord[1]]
+                restore_move(router, action)
+                # router = [start_coord[0], start_coord[1]]
                 continue
             # print("check: router[1]: {} >= boundary[1]{} ? ".format(router[1], boundary[1]))
             if router[1] >= boundary[1] or router[1] < 0:
@@ -68,7 +84,8 @@ def greedy_move(actual_score, map_mask, building_matrix, router_list)->set:
             map_mask[router[0], router[1]] = 1
             temp_score = get_covered_cells(map_mask, building_matrix, range)
             map_mask[router[0], router[1]] = 0
-            router = [start_coord[0], start_coord[1]]
+            restore_move(router, action)
+            # router = [start_coord[0], start_coord[1]]
             if temp_score > actual_score:
                 greedy_move_set = (i, action, temp_score)
                 map_mask[start_coord[0], start_coord[1]] = 1
@@ -103,19 +120,21 @@ def best_move(actual_score, map_mask, building_matrix, router_list, range):
             move(router, action)
             
             # violating the boundary, should be reset
-            # print("check: router[0]: {} >= boundary[0]{} ? ".format(router[0], boundary[0]))
-            if router[0] >= boundary[0] or router[0] < 0:
-                router = [start_coord[0], start_coord[1]]
+            if (router[0] >= boundary[0] or router[0] < 0 or
+                router[1] >= boundary[1] or router[1] < 0 or
+                building_matrix[router[0]][router[1]] == '#' or
+                building_matrix[router[0]][router[1]] == '-'
+                ):
+                restore_move(router, action)
+                # router = [start_coord[0], start_coord[1]]
                 continue
-            # print("check: router[1]: {} >= boundary[1]{} ? ".format(router[1], boundary[1]))
-            if router[1] >= boundary[1] or router[1] < 0:
-                router = [start_coord[0], start_coord[1]]
-                continue
+
             map_mask[router[0], router[1]] = 1
             temp_score = get_covered_cells(map_mask, building_matrix, range)
             # per_action_score[str((router,action))] = temp_score
             map_mask[router[0], router[1]] = 0
-            router = [start_coord[0], start_coord[1]]
+            restore_move(router, action)
+            # router = [start_coord[0], start_coord[1]]
             if temp_score > best_score:
                 best_move_set = (i, action, temp_score)
         map_mask[start_coord[0], start_coord[1]] = 1
@@ -148,6 +167,9 @@ def optimization_step(map_mask, building_matrix, router_list, range, policy, ver
         move_set = greedy_move(score, map_mask, building_matrix, router_list, range)
     else:
         raise NotValidPolicyExcception("Not a valid policy")
+    if len(move_set) != 3:
+        print("no improving action")
+        return 0
     chosen_router = router_list[move_set[0]]
 
     map_mask[chosen_router[0], chosen_router[1]] = 0

@@ -1,7 +1,6 @@
 
 import numpy as np
-import copy
-
+from copy import copy
 from Data import Data
 from search import *
 from utils import *
@@ -31,6 +30,7 @@ def main():
     best_routers_settings = None
     i = 0
     for j in range(random_init):
+        print("-------------------RANDOM INIT, iteration: {}------------------".format(j))
         while i < 50:
             improved = optimization_step(router_mask, data.matrix, data.router_list, data.router_range, Policy.BEST, verbose=True)
             if improved == 0:
