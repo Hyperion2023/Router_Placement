@@ -247,49 +247,139 @@ def optimization_step(map_mask, building_matrix, router_list, range, policy, ver
         print_routers(building_matrix, router_list)
     return improved
         
-def optimization_step_2(map_mask, building_matrix, router_list, range, policy, verbose=True):
-    """
-    second stupid implementation
-    
-    Uses the same idea from the first implementation, but if the local score is improved,
-    then also the global score is improved too.
-    
-    Args:
-        map_mask (np.array): the mask of routers in the matrix
-        building_matrix (np.array): the matrix representation of the building
-        router_list (list): the list of router coordinates
-        range (int): the router coverage range
-        policy (Policy): the applied policy to find the move
-        verbose (str): if True, the move taken and the difference about the score achieved is displayed
-
-    Returns:
-        int : improving score
-    """
-    
-    score = get_covered_cells(router_list, map_mask, range)
-    covered_dict = {}
-    per_action_score = {}
-    # todo
-    
-    for router_coords in zip(*map_mask.nonzero()):
+        
+class Search:
+    def __init__(self,map_mask, building_matrix, router_list, range,) -> None:
+        self.covered_dict = {}
+        self.map_mask = map_mask
+        self.building_matrix = building_matrix
+        self.router_list = router_list
+        self.range = range
+        # todo
+        
+        for router_coords in zip(*map_mask.nonzero()):
+            points_covered_by_router = self.get_router_coverage(router_coords)
+            for covered_cell in points_covered_by_router:
+                if covered_cell not in self.covered_dict:
+                    self.covered_dict[covered_cell] = 1
+                else:
+                    self.covered_dict[covered_cell] += 1
+                    
+    def get_router_coverage(self, router_coords):
         # compute points covered by the router
         points_covered_by_router = get_points_around_router(
-            map_mask,
-            router_coords,
-            range
+        self.map_mask,
+        router_coords,
+        self.range
         )
         # filter points covered by walls and void cells
         points_covered_by_router = filter_non_target_points(
-            building_matrix,
+            self.building_matrix,
             router_coords,
             points_covered_by_router
         )
-
-        for covered_cell in points_covered_by_router:
-            if covered_cell not in covered_dict:
-                covered_dict[covered_cell] = 1
-            else:
-                covered_dict[covered_cell] += 1
+        return points_covered_by_router
     
-    return per_action_score
+    def calc_cost(self, new_pos, old_pos):
+        old_pos_cverage = self.get_router_coverage(old_pos)
+        new_pos_coverage = self.get_router_coverage(new_pos)
+        
+        decrease = 0
+        for old_cov in old_pos_cverage:
+            assert(old_cov not in self.covered_dict)
+            self.covered_dict[old_cov] -= 1
+            if self.covered_dict[old_cov] == 0:
+                decrease += 1
+            
+        increase = 0
+        for new_cov in new_pos_coverage:
+            if (new_cov not in self.covered_dict or
+                self.covered_dict[new_cov] == 0
+                ):
+                self.covered_dict[new_cov] = 1
+                increase += 1
+            else:
+                self.covered_dict[new_cov] += 1
+        return increase - decrease
+                
+    def greedy_move(self,actual_score):
+        greedy_move_set = ()
+        boundary = self.map_mask.shape
+        for i, router in enumerate(self.router_list):
+            start_coord = [router[0], router[1]]
+            self.map_mask[start_coord[0], start_coord[1]] = 0
+            for action in Action:
+                move(router, action)
+                # violating the boundary, should be reset
+                # print("check: router[0]: {} >= boundary[0]{} ? ".format(router[0], boundary[0]))
+                if router[0] >= boundary[0] or router[0] < 0:
+                    restore_move(router, action)
+                    # router = [start_coord[0], start_coord[1]]
+                    continue
+                # print("check: router[1]: {} >= boundary[1]{} ? ".format(router[1], boundary[1]))
+                if router[1] >= boundary[1] or router[1] < 0:
+                    router = [start_coord[0], start_coord[1]]
+                    continue
+                self.map_mask[router[0], router[1]] = 1
+                # todo
+                temp_score = self.calc_cost()
+                self.map_mask[router[0], router[1]] = 0
+                restore_move(router, action)
+                # router = [start_coord[0], start_coord[1]]
+                if temp_score > actual_score:
+                    greedy_move_set = (i, action, temp_score)
+                    self.map_mask[start_coord[0], start_coord[1]] = 1
+                    return greedy_move_set
+                
+            self.map_mask[start_coord[0], start_coord[1]] = 1
+        return greedy_move_set
+    
+    def best_move(self):
+        pass
+    
+    def optimization_step_2(self, policy, verbose=True):
+        """
+        second stupid implementation
+        
+        Uses the same idea from the first implementation, but if the local score is improved,
+        then also the global score is improved too.
+        
+        Args:
+            map_mask (np.array): the mask of routers in the matrix
+            building_matrix (np.array): the matrix representation of the building
+            router_list (list): the list of router coordinates
+            range (int): the router coverage range
+            policy (Policy): the applied policy to find the move
+            verbose (str): if True, the move taken and the difference about the score achieved is displayed
+
+        Returns:
+            int : improving score
+        """
+        
+        score = get_covered_cells(self.router_list, self.map_mask, self.range)
+        # covered_dict = {}
+        # per_action_score = {}
+        # # todo
+        
+        # for router_coords in zip(*map_mask.nonzero()):
+        #     # compute points covered by the router
+        #     points_covered_by_router = get_points_around_router(
+        #         map_mask,
+        #         router_coords,
+        #         range
+        #     )
+        #     # filter points covered by walls and void cells
+        #     points_covered_by_router = filter_non_target_points(
+        #         building_matrix,
+        #         router_coords,
+        #         points_covered_by_router
+        #     )
+
+        #     for covered_cell in points_covered_by_router:
+        #         if covered_cell not in covered_dict:
+        #             covered_dict[covered_cell] = 1
+        #         else:
+        #             covered_dict[covered_cell] += 1
+        
+        # return per_action_score
         

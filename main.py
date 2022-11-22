@@ -10,7 +10,7 @@ from utils import *
 
 def main():
 
-    data = Data.Data("Dataset/tiny_test.in")
+    data = Data.Data("Dataset/charleston_road.in")
 
     print(data.matrix.shape, data.router_range)
     print(data.backbone_cost, data.router_cost, data.budget)
