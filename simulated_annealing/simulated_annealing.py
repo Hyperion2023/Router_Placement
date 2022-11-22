@@ -7,12 +7,18 @@ import Data
 __all__ = ["simulated_annealing"]
 
 
-def state_neighbor(current_state : np.array, building_matrix : np.array, move_type : str):
+def state_neighbor(current_state : np.array, building_matrix : np.array, move_type : str, verbose : bool):
     
     supported_moves = ["add", "remove"] # TODO add the router movement
 
+    new_state = new_state = np.copy(current_state)
+
     if (move_type not in supported_moves):
         move_type = rm.choices(supported_moves)
+        move_type = move_type[0]
+
+    if verbose:
+        print("\t\tnew state type: ", move_type)
 
     if move_type == "add": # add one router
         target_coords = np.nonzero(building_matrix == ".") #returns a touple of arrays for the row and column coordinates
@@ -21,25 +27,35 @@ def state_neighbor(current_state : np.array, building_matrix : np.array, move_ty
         random_coord = rm.randrange(0, len(target_coords[0]))
         rand_row = target_coords[0][random_coord]
         rand_column = target_coords[1][random_coord]
-
-        new_state = np.copy(current_state)
         new_state[rand_row][rand_column] = 1
-        return new_state
 
     elif move_type == "remove": # remove one router
         router_coords = current_state.nonzero()
         if len(router_coords[0]) == 0:
             return current_state
-        
         random_coord = rm.randrange(0, len(router_coords[0]))
         rand_row = router_coords[0][random_coord]
         rand_column = router_coords[1][random_coord]
-
-        new_state = np.copy(current_state)
         new_state[rand_row][rand_column] = 0
-        return new_state
 
-    #elif random == 3: # move one router
+    #elif move_type == "move": # move one router
+    #    router_coords = current_state.nonzero()
+    #    if len(router_coords[0]) == 0:
+    #        return current_state
+    #    
+    #    random_coord = rm.randrange(0, len(router_coords[0]))
+    #    rand_row = router_coords[0][random_coord]
+    #    rand_column = router_coords[1][random_coord]
+    
+    else:
+        pass
+        
+    return new_state
+
+
+   
+
+    
 
 
 def simulated_annealing(
@@ -49,7 +65,8 @@ def simulated_annealing(
         initial_temperature : int, 
         building_matrix : np.array, 
         fitness_function,
-        sigma
+        sigma,
+        verbose=True
     ) -> np.array:
 
     """" simulated annealing
@@ -66,20 +83,19 @@ def simulated_annealing(
 
     rm.seed(a=None, version=2)
 
-    min_routers = utils.min_routers_optimal_condition(data)
-
     curret_temperature = initial_temperature
     current_state = initial_state
     currennt_fitness = fitness_function(current_state)
 
     for i in range(number_iterations): # the termination condition could be also related to the temperature
-
-        move_type = "add" if utils.get_number_routers(current_state) < min_routers else "random"
+        if verbose:
+            print(f"ITERAZIONE {i}")
         
         new_state = state_neighbor(
             current_state = current_state, 
             building_matrix=building_matrix,
-            move_type=move_type
+            move_type="random",
+            verbose=verbose
             )
 
         new_fitness = fitness_function(new_state)
@@ -90,13 +106,17 @@ def simulated_annealing(
             currennt_fitness = new_fitness
         
         elif rm.uniform(0,1) < np.exp(delta_fitness / curret_temperature): # delta_fitness < 0, so this is equivalent to 1 / e^ sigma * (|delta_fitness|/current_temperature)
-            #print("Iteration", i, "delta fitness", delta_fitness, "prob of accept bad fitness:", np.exp(sigma * delta_fitness / curret_temperature))
+            if verbose:
+                print("\t\taccepted negative change")
             current_state = new_state
             currennt_fitness = new_fitness
         
         else:
             pass
-
+        
+        if verbose:
+            print("\t\tdelta fitness", delta_fitness, ", the probability of accept negative changes was:", np.exp(sigma * delta_fitness / curret_temperature))
+            
 
         curret_temperature -= 1 # also more compex decreasing 
         
