@@ -1,13 +1,5 @@
-"""
--select 2 patterns for reproduction, one possibility is to select from all individuals with probability proportional to their fitness score. Another possibility is to select them randomly
--randomly select a crossover point to split each of the parent data, and recombine the parts to form two children, one with the first part of parent 1 and the second part of parent 2;
-the other with the second part of parent 1 and the first part of parent 2.
--mutation phase: once a son has been generated, every part in its composition is flipped with probability equal to the mutation rate
-"""
-
 import numpy as np
 import random
-
 
 __all__ = ["genetic_algorithm"]
 
@@ -21,18 +13,24 @@ def mutate(building_matrix: np.array, routers_placement: np.array) -> np.array:
 		cell is 1 if there is a router, else 0
 	"""
 	is_wall = lambda c: c == "#"
+	is_void = lambda c: c == "-"
 	flip_cell = lambda c: 1 if c == 0 else 0
 
 	new_routers_placement = np.array(routers_placement)
 
-	for (row_index, row) in enumerate(new_routers_placement):  # iterate over all rows
+	for (row_index, row) in enumerate(building_matrix):  # iterate over all rows
+		# if the row is all invalid cells (void/walls) then skip to next_row
+		if "." not in row:
+			continue
+
 		# generate a random (valid) position inside row
 		invalid_cell_to_flip = True
 		while invalid_cell_to_flip:
 			flipping_position = random.randint(0, len(row)-1)
-
-			# checks if it is a wall
-			invalid_cell_to_flip = True if is_wall(building_matrix[row_index][flipping_position]) else False
+			cell = building_matrix[row_index][flipping_position]
+			# checks if it is a wall or void
+			if not is_wall(cell) and not is_void(cell):
+				invalid_cell_to_flip = False
 
 		# flip cell
 		new_routers_placement[row_index][flipping_position] = flip_cell(new_routers_placement[row_index][flipping_position])
@@ -60,7 +58,7 @@ def reproduce(routers_placement1: np.array, routers_placement2: np.array) -> np.
 	return new_routers_placement
 
 
-def choose_parents_population(population: list, fitness_function) -> tuple:
+def get_weight_population_by_fitness(population: list, fitness_function) -> list:
 	# computing for each configuration the probability to be selected, according to the fitness function
 	weighted_population = [
 		(configuration, configuration_fitness)
@@ -70,7 +68,22 @@ def choose_parents_population(population: list, fitness_function) -> tuple:
 	# order by the fitness of configuration
 	weighted_population.sort(key=lambda x: x[1])
 
-	return weighted_population[0][0], weighted_population[1][0]
+	return weighted_population
+
+
+def choose_parents_population(population: list, fitness_function) -> tuple:
+	weighted_population = get_weight_population_by_fitness(population, fitness_function)
+
+	# selected 2 parents with a probabity proportial to the configuration fitness
+	configurations = []
+	fitnesses = []
+	for (configuration, configuration_fitness) in weighted_population:
+		configurations.append(configuration)
+		fitnesses.append(configuration_fitness)
+
+	picked_parents = (random.choices(configurations, weights=fitnesses, k=2))
+
+	return picked_parents[0], picked_parents[1]
 
 
 def genetic_algorithm(
@@ -78,7 +91,8 @@ def genetic_algorithm(
 		population: list,
 		fitness_function,
 		mutation_probability: float = None,
-		max_iter: int = 1000
+		max_iter: int = 1000,
+		verbose: bool = False
 ) -> np.array:
 	"""
 	:param building_matrix: array of arrays, indicates where are void, wall and target cells
@@ -87,9 +101,13 @@ def genetic_algorithm(
 	:param mutation_probability: float, probability of a random mutation. If not specified, a random
 		probability is generated for every reproduction cycle
 	:param max_iter: int, maximum number of iterations cycles
+	:param verbose: bool
 	:return: the best individual in population, according to fitness
 	"""
-	for _ in range(max_iter):  # iterate until some individual is fit enough, or enough time has elapsed
+	for i in range(max_iter):  # iterate until some individual is fit enough, or enough time has elapsed
+		if verbose:
+			print(f"ITERATION {i}")
+
 		new_population = []
 		for _ in range(len(population)):
 			# select randomly two individuals in the population, preferring these with better fitness
@@ -108,10 +126,6 @@ def genetic_algorithm(
 		population = new_population
 
 	# return best individual found according to fitness
-	weighted_population = [
-		(configuration, configuration_fitness)
-		for (configuration, configuration_fitness) in zip(population, map(fitness_function, population))
-	]
-	weighted_population.sort(key=lambda x: x[1])
+	weighted_population = get_weight_population_by_fitness(population, fitness_function)
 
 	return weighted_population[0][0]

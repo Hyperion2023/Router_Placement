@@ -1,11 +1,16 @@
-import itertools
+import random
 import numpy as np
-from copy import copy
+import Data
+import math
+import backbone
+import itertools
+
 
 __all__ = [
-    "get_number_routers",
-    "get_number_routers",
-    "get_backbone_length"
+	"get_number_routers",
+	"get_number_covered_cells",
+	"compute_fitness",
+	"get_random_router_placement"
 ]
 
 
@@ -14,23 +19,23 @@ def get_points_around_router(
     router_coords: tuple,
     router_radius: int
 ) -> list:
-    """
-    Given the position of a router inside the building, returns the number of cells covered by that
-    router, without considering the wall and void cells.
+	"""
+	Given the position of a router inside the building, returns the number of cells covered by that
+	router, without considering the wall and void cells.
 
-    :param matrix: array of arrays, matrix of cells
-    :param router_coords: tuple, contains the (x,y) coordinates of a router in the matrix
-    :param router_radius: int, the radius of cells covered by the router
-    """
-    r, c = router_coords
-    m, n = matrix.shape
-    coords = []
-    for i in np.arange(start=-router_radius, stop=router_radius+1, step=1):
-        for j in np.arange(start=-router_radius, stop=router_radius + 1, step=1):
-            # check if location is within boundary
-            if 0 <= r + i < m and 0 <= c + j < n:
-                coords.append((r + i, c + j))
-    return coords
+	:param matrix: array of arrays, matrix of cells
+	:param router_coords: tuple, contains the (x,y) coordinates of a router in the matrix
+	:param router_radius: int, the radius of cells covered by the router
+	"""
+	r, c = router_coords
+	m, n = matrix.shape
+
+	return [
+		(r + i, c + j)
+		for i in np.arange(start=-router_radius, stop=router_radius+1, step=1)
+		for j in np.arange(start=-router_radius, stop=router_radius + 1, step=1)
+		if 0 <= r + i < m and 0 <= c + j < n
+	]
 
 
 def filter_non_target_points(
@@ -80,10 +85,10 @@ def filter_non_target_points(
     return filtered_points
 
 
-def get_covered_cells(
-    routers_placement: np.array,
-    building_matrix: np.array,
-    router_range: int
+def get_number_covered_cells(
+		routers_placement: np.array,
+		building_matrix: np.array,
+		router_range: int
 ) -> int:
     """
     Given a placement of routers and the matrix of the building returns the number of unique target
@@ -127,30 +132,101 @@ def get_number_routers(
     return np.count_nonzero(routers_placement)
 
 
-def get_backbone_length(
-    backbone_starting_point: tuple,
-    routers_placement: np.array
-) -> int:
-    return 0
+def compute_fitness(
+		building_matrix: np.array,
+		routers_placement: np.array,
+		router_range: int,
+		backbone_starting_point: tuple,
+		router_cost: int,
+		backbone_cost: int,
+		budget: int
+	) -> float:
+	# compute number of cells covered by router signal
+	number_covered_cells = get_number_covered_cells(routers_placement, building_matrix, router_range)
+
+	# compute number of routers
+	number_routers = get_number_routers(routers_placement)
+
+	# compute cost of backbone connecting routers
+	backbone_length = backbone.get_backbone_length(
+		backbone_starting_point,
+		routers_placement,
+		backbone_cost
+	)
+	
+	total_cost = number_routers*router_cost + backbone_length*backbone_cost
+
+	score = 1000 * number_covered_cells + (budget - total_cost )
+
+	if total_cost > budget:
+		print(f"WARNING: OUT OF BUDGET")
+	
+	return score
 
 
-
-def print_matrix(matrix):
-    """
-	utility function that prints the map
+def get_random_router_placement(
+		building_matrix: np.array,
+		number_routers: int
+) -> np.array:
 	"""
-    for row in matrix:
-        for item in row:
-            print(item, end='')
-        print("")
+	Generates a random placement of the routers inside the building, considering the condition that
+	a router can't be placed in a wall and leveraging the fact that a router inside a void cell is unuseful
 
-    
-def print_routers(matrix, router_coords):
-    """
-	utility function that prints the map with routers position 
+	:param building_matrix: array of arrays, the matrix which describers the building structure
+	:param number_routers: int, number of routers to generate.
+	:return: returns a placement of routers containing the number of required routers
 	"""
-    matrix_copy = copy(matrix)
+	n, m = building_matrix.shape
+	routers_placement = np.zeros(shape=(n, m))
 
-    for rout in router_coords:
-        matrix_copy[rout[0], rout[1]] = 'R'
-    print_matrix(matrix_copy)
+	generate_router_position = lambda width, height: (
+		random.randint(0, width-1),
+		random.randint(0, height-1)
+	)
+	is_target = lambda c: c == "."
+	contains_router = lambda c: c == 1
+
+	number_routers_created = 0
+	while number_routers_created < number_routers:
+		# generate a couple of random coordinates inside the building
+		i, j = generate_router_position(n, m)
+
+		# verify if the random position is suitable for containing a router; this means
+		# that the cell should be a target and must not contain a router
+
+		if is_target(building_matrix[i][j]) and not contains_router(routers_placement[i][j]):
+			routers_placement[i][j] = 1
+			number_routers_created += 1
+
+	return routers_placement
+
+
+def save_output_matrix(path, building_matrix, state, score):
+	_building_matrix = np.copy(building_matrix)
+	router_coords = [ (i,j) for (i,j) in zip(*state.nonzero())]
+	for (i, j) in router_coords:
+		_building_matrix[i][j] = 1
+	np.savetxt(path,_building_matrix, fmt="%c", delimiter='')
+
+	f = open(path,'r+')
+	lines = f.readlines() # read old content
+	f.seek(0) # go back to the beginning of the file
+	f.write("Score: "+str(score)+"\n\n") # write new content at the beginning
+	for line in lines: # write old content after new
+		f.write(line)
+	f.close()
+
+
+def min_routers_optimal_condition(data : Data) -> int:
+    """
+    get the number of routers needed to obtain a full coverage in a perfect scenario
+    """
+
+    target_area = data.target_area
+    router_range = data.router_range
+
+    router_coverage = router_range*router_range
+    num_router = math.ceil(target_area/router_coverage)
+    return num_router
+
+

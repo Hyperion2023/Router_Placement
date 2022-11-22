@@ -1,85 +1,91 @@
-
+import utils
 import numpy as np
-from copy import copy
+import argparse
+import viz
+import backbone
 from Data import Data
-from search import *
-from utils import *
+from simulated_annealing import simulated_annealing
+from genetic_algorithm import genetic_algorithm
 
 
+def main(args):
+    filepath = args.filepath
+    algorithm = args.algorithm
 
+    data = Data(filepath)
 
-def main():
+    fitness_function = lambda routers: utils.compute_fitness(
+        building_matrix=building_matrix,
+        routers_placement=routers,
+        router_range=data.router_range,
+        backbone_starting_point=data.initial_backbone,
+        router_cost=data.router_cost,
+        backbone_cost=data.backbone_cost,
+        budget=data.budget
+    )
 
-    data = Data.Data("Dataset/charleston_road.in")
+    building_matrix = data.matrix
+    router_radius = data.router_range
 
-    print(data.matrix.shape, data.router_range)
-    print(data.backbone_cost, data.router_cost, data.budget)
-    print(data.initial_backbone)
-    print(data.target_area)
-    # print(data.matrix)
-    
-    data.random_init()
-    router_mask = data.initial_routers_placement()
-    print("STARTING CONFIGURATION:")
-    print_routers(data.matrix, data.router_list)
+    if algorithm == "genetic":
+        best_configuration = genetic_algorithm(
+            building_matrix=building_matrix,
+            population=[
+                utils.get_random_router_placement(building_matrix, 10),
+                utils.get_random_router_placement(building_matrix, 10)
+            ],
+            fitness_function=fitness_function,
+            mutation_probability=0.5,
+            max_iter=5,
+            verbose=True
+        )
+    elif algorithm == "annealing":
+        best_configuration = simulated_annealing(
+            data=data,
+            initial_state=utils.get_random_router_placement(
+                building_matrix=building_matrix,
+                number_routers= int(1.2 * utils.min_routers_optimal_condition(data=data))
+            ),
+            number_iterations=40,
+            initial_temperature=500,
+            building_matrix=building_matrix,
+            fitness_function=fitness_function,
+            sigma=router_radius,
+            verbose=True
+        )
+    elif algorithm == "hill_climbing":
+        pass
+    else:
+        return
 
-    
-    random_init = 10
-    max_step = 50
-    max_score = 0
-    best_routers_settings = None
-    i = 0
-    for j in range(random_init):
-        print("-------------------RANDOM INIT, iteration: {}------------------".format(j))
-        while i < 50:
-            improved = optimization_step(router_mask, data.matrix, data.router_list, data.router_range, Policy.BEST, verbose=True)
-            if improved == 0:
-                i += 1
-        temp_score = get_covered_cells(router_mask, data.matrix, data.router_range)
-        if temp_score == data.target_area :
-            max_score = temp_score
-            best_routers_settings = copy(data.router_list)
-            break
-        if temp_score > max_score:
-            # todo
-            # here we should take in consideration also the cost
-            max_score = temp_score
-            best_routers_settings = copy(data.router_list)
-        data.random_init()
-        router_mask = data.initial_routers_placement()
-            
-    print("FINAL CONFIGURATION: ")
-    print_routers(data.matrix, best_routers_settings)
+    g = backbone.get_backbone_graph(
+        data.initial_backbone,
+        best_configuration,
+        data.backbone_cost
+    )
 
+    print(f"coverage = {utils.get_number_covered_cells(best_configuration, data.matrix, data.router_range)/data.target_area}")
+    print("total score", utils.compute_fitness(
+        building_matrix=building_matrix,
+        routers_placement=best_configuration,
+        router_range=data.router_range,
+        backbone_starting_point=data.initial_backbone,
+        router_cost=data.router_cost,
+        backbone_cost=data.backbone_cost,
+        budget=data.budget
+    ) )
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+    viz.plot_solution(
+        building_matrix,
+        best_configuration,
+        [_ for _ in g.nodes()],
+        data.initial_backbone
+    )
 
 
 if __name__  == "__main__":
-    main()
+    parser = argparse.ArgumentParser()
+    parser.add_argument("filepath", help="Path to the dataset to use")
+    parser.add_argument("algorithm", help="Algorithm to use for solving the problem")
+    args = parser.parse_args()
+    main(args)
