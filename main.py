@@ -47,7 +47,7 @@ def main(args):
                 number_routers= int(1.2 * utils.min_routers_optimal_condition(data=data))
             ),
             number_iterations=40,
-            initial_temperature=500,
+            initial_temperature=1000,
             building_matrix=building_matrix,
             fitness_function=fitness_function,
             sigma=router_radius,
