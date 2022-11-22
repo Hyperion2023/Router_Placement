@@ -85,7 +85,7 @@ def simulated_annealing(
 
     curret_temperature = initial_temperature
     current_state = initial_state
-    currennt_fitness = fitness_function(current_state)
+    currennt_fitness , out_budget = fitness_function(current_state)
 
     for i in range(number_iterations): # the termination condition could be also related to the temperature
         if verbose:
@@ -98,7 +98,9 @@ def simulated_annealing(
             verbose=verbose
             )
 
-        new_fitness = fitness_function(new_state)
+        new_fitness, out_budget = fitness_function(new_state)
+        if out_budget:
+            print("out of budget")
         delta_fitness = new_fitness - currennt_fitness
        
         if delta_fitness >= 0: # new state is better
