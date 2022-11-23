@@ -141,6 +141,10 @@ def compute_fitness(
 		backbone_cost: int,
 		budget: int
 	) -> float:
+
+	"""
+		Returns two values, the first one is the fitness (score), the second one is a boolean true iff the solution is out of budget
+	"""
 	# compute number of cells covered by router signal
 	number_covered_cells = get_number_covered_cells(routers_placement, building_matrix, router_range)
 
@@ -157,11 +161,8 @@ def compute_fitness(
 	total_cost = number_routers*router_cost + backbone_length*backbone_cost
 
 	score = 1000 * number_covered_cells + (budget - total_cost )
-
-	if total_cost > budget:
-		print(f"WARNING: OUT OF BUDGET")
 	
-	return score
+	return score, total_cost > budget
 
 
 def get_random_router_placement(
