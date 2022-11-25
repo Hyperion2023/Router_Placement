@@ -362,7 +362,41 @@ class Search:
         return greedy_move_set
     
     def best_move(self):
-        pass
+        best_move_set = ()
+        best_improve = 0
+        
+        boundary = self.map_mask.shape
+        for i, router in enumerate(self.router_list):
+            # setting up the coverage and mask
+            start_coord = [router[0], router[1]]
+            self.map_mask[start_coord[0], start_coord[1]] = 0
+            old_pos_coverage = self.get_router_coverage(router)
+            decreased = 0
+            for old_cov in old_pos_coverage:
+                assert(old_cov in self.covered_dict)
+                self.covered_dict[old_cov] -= 1
+                if self.covered_dict[old_cov] == 0:
+                    decreased += 1
+            
+            for action in Action:
+                move(router, action)
+                # violating the boundary, should be reset
+                if ((router[0] >= boundary[0] or router[0] < 0) or 
+                    (router[1] >= boundary[1] or router[1] < 0)):
+                    restore_move(router, action)
+                    continue
+                # checking if improved the fitness
+                improvement = self.calc_cost(router, decreased)
+                restore_move(router, action)
+                if improvement > best_improve:
+                    best_move_set = (i, action, improvement)
+                    best_improve = improvement
+                
+            # restore of the coverage and mask
+            for old_cov in old_pos_coverage:
+                self.covered_dict[old_cov] += 1
+            self.map_mask[start_coord[0], start_coord[1]] = 1
+        return best_move_set
     
     def optimization_step(self, policy, verbose=True):
         """
