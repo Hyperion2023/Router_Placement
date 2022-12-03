@@ -1,10 +1,10 @@
 import Data
 import random
 from enum import Enum
-from utils import get_covered_cells
-from utils import print_routers
+from utils import get_number_covered_cells
 from utils import get_points_around_router
 from utils import filter_non_target_points
+from utils import print_routers
 
 class NotValidPolicyExcception(Exception):
     pass
@@ -85,7 +85,7 @@ def greedy_move(actual_score, map_mask, building_matrix, router_list)->set:
                 router = [start_coord[0], start_coord[1]]
                 continue
             map_mask[router[0], router[1]] = 1
-            temp_score = get_covered_cells(map_mask, building_matrix, range)
+            temp_score = get_number_covered_cells(map_mask, building_matrix, range)
             map_mask[router[0], router[1]] = 0
             restore_move(router, action)
             # router = [start_coord[0], start_coord[1]]
@@ -133,7 +133,7 @@ def best_move(actual_score, map_mask, building_matrix, router_list, range):
                 continue
 
             map_mask[router[0], router[1]] = 1
-            temp_score = get_covered_cells(map_mask, building_matrix, range)
+            temp_score = get_number_covered_cells(map_mask, building_matrix, range)
             # per_action_score[str((router,action))] = temp_score
             map_mask[router[0], router[1]] = 0
             restore_move(router, action)
@@ -216,7 +216,7 @@ def optimization_step(map_mask, building_matrix, router_list, range, policy, ver
     Returns:
         int: improving score
     """
-    score = get_covered_cells(map_mask, building_matrix, range)
+    score = get_number_covered_cells(map_mask, building_matrix, range)
 
     if policy == Policy.BEST:
         move_set = best_move(score, map_mask, building_matrix, router_list, range)
@@ -228,7 +228,7 @@ def optimization_step(map_mask, building_matrix, router_list, range, policy, ver
         # try to add a new router
         print("trying to add new router...", end="")
         map_mask, router_list = add_router(map_mask, building_matrix, router_list, range)
-        add_score = get_covered_cells(map_mask, building_matrix, range)
+        add_score = get_number_covered_cells(map_mask, building_matrix, range)
         if add_score == score:
             print("no improving action")
             return 0
@@ -278,10 +278,13 @@ class Search:
         for router_coords in zip(*map_mask.nonzero()):
             points_covered_by_router = self.get_router_coverage(router_coords)
             for covered_cell in points_covered_by_router:
-                if covered_cell not in self.covered_dict:
+                if covered_cell not in self.covered_dict.keys():
                     self.covered_dict[covered_cell] = 1
                 else:
                     self.covered_dict[covered_cell] += 1
+        # print("$"*50)
+        # for key, value in self.covered_dict.items():
+        #     print("key:{}, value:{}".format(key, self.covered_dict[key]))
                     
     def get_router_coverage(self, router_coords) -> list:
         """gets the local coverage of the router with coordinates router_coords
@@ -319,11 +322,36 @@ class Search:
         new_pos_coverage = self.get_router_coverage(new_pos)
         increase = 0
         for new_cov in new_pos_coverage:
-            assert(self.covered_dict[new_cov] >= 0)
+            # assert(self.covered_dict[new_cov] >= 0)
             if (new_cov not in self.covered_dict or
                 self.covered_dict[new_cov] == 0):
                 increase += 1
         return increase - decreased
+    
+    def update(self, moveset):
+        if len(moveset) != 3:
+            return
+        # print("router:{}, action:{}, improvement:{}".format(moveset[0], moveset[1], moveset[2]))
+        router = self.router_list[moveset[0]]
+        action = moveset[1]
+        self.map_mask[router[0], router[1]] = 0
+        
+        # -1 for all cell in the old position
+        old_pos_coverage = self.get_router_coverage(router)
+        for old_cov in old_pos_coverage:
+            self.covered_dict[old_cov] -= 1
+        
+        # update for the new position
+        # print("updating dict:")
+        move(router, action)
+        self.map_mask[router[0], router[1]] = 1
+        new_pos_coverage = self.get_router_coverage(router)
+        for new_cov in new_pos_coverage:
+            # print(new_cov)
+            if new_cov not in self.covered_dict:
+                self.covered_dict[new_cov] = 1
+            else:
+                self.covered_dict[new_cov] += 1
                 
     def greedy_move(self):
         greedy_move_set = ()
@@ -335,7 +363,7 @@ class Search:
             old_pos_coverage = self.get_router_coverage(router)
             decreased = 0
             for old_cov in old_pos_coverage:
-                assert(old_cov in self.covered_dict)
+                assert old_cov in self.covered_dict, f"old_cov:{old_cov}"
                 self.covered_dict[old_cov] -= 1
                 if self.covered_dict[old_cov] == 0:
                     decreased += 1
@@ -353,6 +381,9 @@ class Search:
                 if improvement > 0:
                     greedy_move_set = (i, action, improvement)
                     self.map_mask[start_coord[0], start_coord[1]] = 1
+                    # self.update(greedy_move_set)
+                    for old_cov in old_pos_coverage:
+                        self.covered_dict[old_cov] += 1
                     return greedy_move_set
                 
             # restore of the coverage and mask
@@ -373,7 +404,8 @@ class Search:
             old_pos_coverage = self.get_router_coverage(router)
             decreased = 0
             for old_cov in old_pos_coverage:
-                assert(old_cov in self.covered_dict)
+                # print("oldcov:{}".format(old_cov))
+                assert old_cov in self.covered_dict, f"covered_dict:{self.covered_dict} \n old_cov:{old_cov}"
                 self.covered_dict[old_cov] -= 1
                 if self.covered_dict[old_cov] == 0:
                     decreased += 1
@@ -396,6 +428,7 @@ class Search:
             for old_cov in old_pos_coverage:
                 self.covered_dict[old_cov] += 1
             self.map_mask[start_coord[0], start_coord[1]] = 1
+        # self.update(best_move_set)
         return best_move_set
     
     def optimization_step(self, policy, verbose=True):
@@ -438,13 +471,14 @@ class Search:
             #     return 0
             # print("success")
             # move_set = (len(router_list)-1, Action.ADD, add_score)
-            
-        chosen_router = self.router_list[move_set[0]]
-        self.map_mask[chosen_router[0], chosen_router[1]] = 0
-        move(chosen_router, move_set[1])
-        self.map_mask[chosen_router[0], chosen_router[1]] = 1
+        self.update(move_set)
+        # chosen_router = self.router_list[move_set[0]]
+        # self.map_mask[chosen_router[0], chosen_router[1]] = 0
+        # move(chosen_router, move_set[1])
+        # self.map_mask[chosen_router[0], chosen_router[1]] = 1
 
         if(verbose):
             print("OPTIMIZATION STEP:")
             print("\trouter: {}\t action:{}\n\tscore improved by: {}".format(move_set[0], move_set[1], move_set[2]))
+            print_routers(self.building_matrix, self.router_list)
 #endregion

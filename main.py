@@ -4,6 +4,7 @@ import argparse
 import viz
 import backbone
 from Data import Data
+from hill_climbing import hill_climb
 from simulated_annealing import simulated_annealing
 from genetic_algorithm import genetic_algorithm
 
@@ -53,8 +54,8 @@ def main(args):
             sigma=router_radius,
             verbose=True
         )
-    elif algorithm == "hill_climbing":
-        pass
+    elif algorithm == "hill":
+        best_configuration = hill_climb(data=data)
     else:
         return
 
