@@ -140,10 +140,21 @@ def compute_fitness(
 		router_cost: int,
 		backbone_cost: int,
 		budget: int
-	) -> float:
+	) -> tuple:
 
 	"""
-		Returns two values, the first one is the fitness (score), the second one is a boolean true iff the solution is out of budget
+		Compute the fitness value of a routers placement
+
+		:param building_matrix: array of arrays, matrix which indicates the presence of voids/targers/walls
+		:param routers_placement: array of arrays, matrix which indicates the cells where routers are
+            placed. If a cell contains a router its value is 1, otherwise 0
+		:param router_range: int, the range of a router
+		:param backbone_starting_point: tuple, 
+		:param router_cost:
+		:param backbone_cost:
+		:param budget:
+		:return: tuple, the first value is the fitness score, while the second is equal to True if the solution
+			cost is greater than the budget, False otherwise.
 	"""
 	# compute number of cells covered by router signal
 	number_covered_cells = get_number_covered_cells(routers_placement, building_matrix, router_range)
