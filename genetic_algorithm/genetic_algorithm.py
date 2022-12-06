@@ -61,7 +61,7 @@ def reproduce(routers_placement1: np.array, routers_placement2: np.array) -> np.
 def get_weight_population_by_fitness(population: list, fitness_function) -> list:
 	# computing for each configuration the probability to be selected, according to the fitness function
 	weighted_population = [
-		(configuration, configuration_fitness)
+		(configuration, configuration_fitness[0])
 		for (configuration, configuration_fitness) in zip(population, map(fitness_function, population))
 	]
 
