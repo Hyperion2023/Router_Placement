@@ -1,7 +1,6 @@
 import numpy as np
 import networkx as nx
 import itertools
-from functools import cache
 
 
 __all__ = [
@@ -15,7 +14,6 @@ def get_chebyshev_distance(point1: tuple, point2: tuple):
 	x2, y2 = point2
 	return max(abs(x1 - x2), abs(y1 - y2))
 
-@cache
 def get_grid_graph(shape: tuple, backbone_unit_cost: int) -> nx.Graph:
 	"""
 	:param shape: tuple, the shape (number of rows and columns) of the grid graph
@@ -41,6 +39,10 @@ def get_grid_graph(shape: tuple, backbone_unit_cost: int) -> nx.Graph:
 		weight=backbone_unit_cost
 	)
 
+	# setting the weight of each edge to the cost of a backbone unit
+	for edge in g.edges():
+		g.edges()[edge]["weight"] = backbone_unit_cost
+
 	return g
 
 def get_backbone_graph(
@@ -65,10 +67,6 @@ def get_backbone_graph(
 		(x, y)
 		for (x, y) in zip(rows, columns)
 	]
-
-	# setting the weight of each edge to the cost of a backbone unit
-	for edge in g.edges():
-		g.edges()[edge]["weight"] = backbone_unit_cost
 
 	# for each router, searching the shortest path
 	for router in routers_coords:
