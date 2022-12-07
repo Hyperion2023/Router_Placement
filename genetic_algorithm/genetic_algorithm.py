@@ -11,6 +11,7 @@ def mutate(building_matrix: np.array, routers_placement: np.array) -> np.array:
 	:param building_matrix: array of arrays, indicates where are void, wall and target cells
 	:param routers_placement: array of arrays, a mask which indicates where are the routers in the original matrix;
 		cell is 1 if there is a router, else 0
+	:return: new mutated routers_placement
 	"""
 	is_wall = lambda c: c == "#"
 	is_void = lambda c: c == "-"
@@ -59,6 +60,15 @@ def reproduce(routers_placement1: np.array, routers_placement2: np.array) -> np.
 
 
 def get_weight_population_by_fitness(population: list, fitness_function) -> list:
+	"""
+	Computes for each configuration the probability to be selected (according to the fitness function)
+	and returns the configurations (ordered in ascending order)
+
+	:param population: list, list of routers placement
+	:param fitness_function: function that, taken a routers placement as its parameter, returns its value
+	:return: list of tuples, for each tuple the first element contains the routers placement, while the second element
+		corresponds to its value according to the fitness function
+	"""
 	# computing for each configuration the probability to be selected, according to the fitness function
 	weighted_population = [
 		(configuration, configuration_fitness[0])
@@ -72,6 +82,14 @@ def get_weight_population_by_fitness(population: list, fitness_function) -> list
 
 
 def choose_parents_population(population: list, fitness_function) -> tuple:
+	"""
+	Choose 2 parents in the population. A member of the population probability to be picked is proportional to its
+	value according to the fitness function.
+
+	:param population: list, list of routers placement
+	:param fitness_function: function that, taken a routers placement as its parameter, returns its value
+	:return: tuple, a couple of randomly selected configurations weighted by their fitness value
+	"""
 	weighted_population = get_weight_population_by_fitness(population, fitness_function)
 
 	# selected 2 parents with a probabity proportial to the configuration fitness
@@ -127,5 +145,6 @@ def genetic_algorithm(
 
 	# return best individual found according to fitness
 	weighted_population = get_weight_population_by_fitness(population, fitness_function)
-
+	print(weighted_population[0][1])
+	print(weighted_population[1][1])
 	return weighted_population[0][0]
