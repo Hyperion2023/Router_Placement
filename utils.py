@@ -4,6 +4,7 @@ import Data
 import math
 import backbone
 import itertools
+from copy import copy
 
 
 __all__ = [
@@ -241,4 +242,22 @@ def min_routers_optimal_condition(data : Data) -> int:
     num_router = math.ceil(target_area/router_coverage)
     return num_router
 
+def print_matrix(matrix):
+    """
+	utility function that prints the map
+	"""
+    for row in matrix:
+        for item in row:
+            print(item, end='')
+        print("")
 
+    
+def print_routers(matrix, router_coords):
+    """
+	utility function that prints the map with routers position 
+	"""
+    matrix_copy = copy(matrix)
+
+    for rout in router_coords:
+        matrix_copy[rout[0], rout[1]] = "R"
+    print_matrix(matrix_copy)
