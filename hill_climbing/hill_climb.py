@@ -8,7 +8,18 @@ from search import Search
 from utils import get_number_covered_cells 
 from utils import print_routers
 
-def hill_climb(data:Data, random_init=10, max_step=50, policy="best"):    
+def hill_climb(data:Data, random_init=10, max_step=10, policy="best"):
+    """the hill climbing algorithm for router placement
+
+    Args:
+        data (Data): data for the router placement
+        random_init (int, optional): numebr of random initialization of the hill climbing. Defaults to 10.
+        max_step (int, optional): max non improvement step. Defaults to 10.
+        policy (str, optional): the policy for the improving. Defaults to "best".
+
+    Returns:
+        list: a list of routers coordinates
+    """
     for j in range(random_init):
         print("-------------------RANDOM INIT, iteration: {}------------------".format(j))
         data.random_init(num_routers=1)
@@ -38,7 +49,7 @@ def hill_climb(data:Data, random_init=10, max_step=50, policy="best"):
         else:
             policy = Policy.GREEDY
         
-        while i < 10:
+        while i < max_step:
             improved = search.optimization_step(policy, verbose=1)
             print("\tnew score: {}".format(starting_score+improved))
             starting_score += improved

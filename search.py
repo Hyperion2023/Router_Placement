@@ -285,9 +285,6 @@ class Search:
                     self.covered_dict[covered_cell] = 1
                 else:
                     self.covered_dict[covered_cell] += 1
-        # print("$"*50)
-        # for key, value in self.covered_dict.items():
-        #     print("key:{}, value:{}".format(key, self.covered_dict[key]))
                     
     def get_router_coverage(self, router_coords) -> list:
         """gets the local coverage of the router with coordinates router_coords
@@ -332,6 +329,14 @@ class Search:
         return increase - decreased
     
     def update(self, moveset):
+        """update the state by moving the router
+        updates: 
+        - the map mask of router
+        - coverage dictionary
+        
+        Args:
+            moveset (tuple): a triplet containing the router index, action and improving score (the last one not used in this function)
+        """
         if len(moveset) != 3:
             return
         # print("router:{}, action:{}, improvement:{}".format(moveset[0], moveset[1], moveset[2]))
@@ -357,6 +362,13 @@ class Search:
                 self.covered_dict[new_cov] += 1
                 
     def do_cached(self):
+        """caches the last action done
+        in such way we can significantly improve each optimization step in terms of time
+        we store the last router updated and try to push this router to its maximum coverage
+
+        Returns:
+            tuple: the triple of <router idx, action, improvement score>
+        """
         router_idx = self.cached_move_set[0]
         action = self.cached_move_set[1]
         router = self.router_list[router_idx]
@@ -393,7 +405,17 @@ class Search:
         return best_move_set
                 
     def greedy_move(self):
+        """the greedy move action, this retuns the first move triplet that improves the coverage
+
+        Returns:
+            tuple: the first triplet <router idx, action, improvement score> that improves the overall coverage
+        """
+        # see if can use cache
         greedy_move_set = ()
+        if (self.cached_move_set is not None):
+            greedy_move_set = self.do_cached()
+            if greedy_move_set is not None:
+                return greedy_move_set
         boundary = self.map_mask.shape
         for i, router in enumerate(self.router_list):
             # setting up the coverage and mask
@@ -432,6 +454,11 @@ class Search:
         return greedy_move_set
     
     def best_move(self):
+        """the best move action, this retuns the best move triplet that improves the coverage
+
+        Returns:
+            tuple: the best triplet <router idx, action, improvement score> that improves the overall coverage
+        """
         best_move_set = ()
         best_improve = 0
         if (self.cached_move_set is not None):
@@ -473,8 +500,16 @@ class Search:
             self.map_mask[start_coord[0], start_coord[1]] = 1
         return best_move_set
     
-    # todo
     def add_router(self, patient = 5):
+        """tries to add a new router in the map with some patience
+        if after patient pass in a row I can't find an improvement
+
+        Args:
+            patient (int, optional): an interger, greater it is, slower the algorithm is. Defaults to 5.
+
+        Returns:
+            np.array, int: the coordinate for the new router and how much new points is possibile to cover
+        """
         covered_cells = set(self.covered_dict.keys())
         target_coord = set(self.target_coords)
         # for i, row in enumerate(self.building_matrix):
@@ -527,7 +562,6 @@ class Search:
             int : improving score
         """
         
-        # # todo
         if policy == Policy.BEST:
             move_set = self.best_move()
         elif policy == Policy.GREEDY:
