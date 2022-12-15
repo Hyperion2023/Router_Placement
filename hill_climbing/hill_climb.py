@@ -11,11 +11,12 @@ from utils import print_routers
 def hill_climb(data:Data, random_init=10, max_step=50):    
     for j in range(random_init):
         print("-------------------RANDOM INIT, iteration: {}------------------".format(j))
-        data.random_init()
+        data.random_init(num_routers=1)
         router_mask = data.initial_routers_placement()
         print("STARTING CONFIGURATION:")
         print_routers(data.matrix, data.router_list)
-        print("STARTING SCORE: ",get_number_covered_cells(router_mask, data.matrix, data.router_range))
+        starting_score = get_number_covered_cells(router_mask, data.matrix, data.router_range)
+        print("STARTING SCORE: ", starting_score)
         max_score = 0
         best_routers_settings = None
         i = 0
@@ -27,9 +28,12 @@ def hill_climb(data:Data, random_init=10, max_step=50):
         
         search = Search(map_mask, building_matrix, router_list, router_range)
         
-        while i < 50:
+        while i < 10:
             improved = search.optimization_step(Policy.BEST, verbose=True)
-            if improved == 0:
+            
+            print("\tnew score: {}".format(starting_score+improved))
+            starting_score += improved
+            if improved == 0 and starting_score ==  len(data.target_coords):
                 i += 1
         temp_score = get_number_covered_cells(router_mask, data.matrix, data.router_range)
         if temp_score == data.target_area :

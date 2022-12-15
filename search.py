@@ -1,4 +1,5 @@
 import Data
+import numpy as np
 import random
 from enum import Enum
 from utils import get_number_covered_cells
@@ -334,16 +335,16 @@ class Search:
         # print("router:{}, action:{}, improvement:{}".format(moveset[0], moveset[1], moveset[2]))
         router = self.router_list[moveset[0]]
         action = moveset[1]
-        self.map_mask[router[0], router[1]] = 0
-        
-        # -1 for all cell in the old position
-        old_pos_coverage = self.get_router_coverage(router)
-        for old_cov in old_pos_coverage:
-            self.covered_dict[old_cov] -= 1
-        
-        # update for the new position
-        # print("updating dict:")
-        move(router, action)
+        if action is not Action.ADD:
+            self.map_mask[router[0], router[1]] = 0
+            # -1 for all cell in the old position
+            old_pos_coverage = self.get_router_coverage(router)
+            for old_cov in old_pos_coverage:
+                self.covered_dict[old_cov] -= 1
+            
+            # update for the new position
+            # print("updating dict:")
+            move(router, action)
         self.map_mask[router[0], router[1]] = 1
         new_pos_coverage = self.get_router_coverage(router)
         for new_cov in new_pos_coverage:
@@ -431,6 +432,36 @@ class Search:
         # self.update(best_move_set)
         return best_move_set
     
+    # todo
+    def add_router(self):
+        covered_cells = set(self.covered_dict.keys())
+            
+        target_coord = set()
+        for i, row in enumerate(self.building_matrix):
+            for j, item in enumerate(row):
+                if item == '.':
+                    target_coord.add((i,j))
+        
+        to_cover = target_coord-covered_cells
+        if len(to_cover) == 0:
+            return
+        # test where placing the router maximizes the coverage
+        max_increment_coord = None
+        max_increment = 0
+        increment = 0
+        for coord in to_cover:
+            increment = self.calc_cost(coord, 0)
+            if increment > max_increment:
+                max_increment = increment
+                max_increment_coord = coord
+        max_increment_coord = np.reshape(np.array(max_increment_coord), (1,2)) # forcing the dimension of the new coordinates
+        return max_increment_coord, max_increment
+    def remove_router(self):
+        # todo 
+        # here should test if removing a router we loses score and how much we loose
+        # how can we test if removing a router is worth?
+        pass
+    
     def optimization_step(self, policy, verbose=True):
         """
         second stupid implementation
@@ -450,7 +481,6 @@ class Search:
             int : improving score
         """
         
-        # score = get_covered_cells(self.router_list, self.map_mask, self.range)
         # # todo
         if policy == Policy.BEST:
             move_set = self.best_move()
@@ -460,25 +490,30 @@ class Search:
             raise NotValidPolicyExcception("Not a valid policy")
         
         if len(move_set) != 3:
-            print("no improving action")
-            return 0
-            # try to add a new router
-            # print("trying to add new router...", end="")
-            # map_mask, router_list = add_router(map_mask, building_matrix, router_list, range)
-            # add_score = get_covered_cells(map_mask, building_matrix, range)
-            # if add_score == score:
-            #     print("no improving action")
-            #     return 0
-            # print("success")
-            # move_set = (len(router_list)-1, Action.ADD, add_score)
+            print("no improving action...", end="")
+            print("trying to add a new router ", end="")
+            pair = self.add_router()
+            if  pair is not None:
+                print("success")
+                # print("-"*50)
+                # print(f"coords: {pair[0]}")
+                # print(f"pair[0] shape: {pair[0].shape}")
+                # print(f"router list shape: {self.router_list.shape}")
+                # print(f"router list before inserting: {[item for item in self.router_list]}")
+                # print(f"router len before inserting: {len(self.router_list)}")
+                self.router_list = np.append(self.router_list, (pair[0]), axis=0)
+                # print(f"router list after inserting: {[item for item in self.router_list]}")
+                # print(f"router len after inserting: {len(self.router_list)}")
+                # print("-"*50) 
+                move_set = (len(self.router_list)-1, Action.ADD, pair[1])
+            else:
+                print("fail")
+                return 0
         self.update(move_set)
-        # chosen_router = self.router_list[move_set[0]]
-        # self.map_mask[chosen_router[0], chosen_router[1]] = 0
-        # move(chosen_router, move_set[1])
-        # self.map_mask[chosen_router[0], chosen_router[1]] = 1
 
         if(verbose):
             print("OPTIMIZATION STEP:")
             print("\trouter: {}\t action:{}\n\tscore improved by: {}".format(move_set[0], move_set[1], move_set[2]))
             print_routers(self.building_matrix, self.router_list)
+        return move_set[2]
 #endregion
