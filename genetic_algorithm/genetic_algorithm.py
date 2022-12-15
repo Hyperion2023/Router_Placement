@@ -6,12 +6,15 @@ import random
 __all__ = ["genetic_algorithm"]
 
 
-@njit(parallel=True)
-def flip_matrix(matrix: np.array, flip_p: float):
-	for i in prange(matrix.shape[0]):
-		for j in prange(matrix.shape[1]):
-			if np.random.rand() < flip_p:
-				matrix[i][j] = 1 if matrix[i][j] == 0 else 0
+@njit
+def flip_cell(c: int, flip_p) -> int:
+    if np.random.rand() < flip_p:
+        return 1 if c == 0 else 0
+    else:
+        return c
+
+def flip_matrix(matrix: np.array, flip_p: float) -> np.array:
+    return np.vectorize(flip_cell)(matrix, flip_p)
 
 def mutate(
 		building_matrix: np.array,
