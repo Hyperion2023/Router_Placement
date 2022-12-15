@@ -40,23 +40,30 @@ def mutate(
 
 def reproduce(routers_placement1: np.array, routers_placement2: np.array) -> np.array:
 	"""
+	Given 2 parents computes the child by extracting the submatrices for each parent and then merging
+	them.
+
+	:param routers_placement1: array of arrays, the first parent matrix
+	:param routers_placement2: array of arrays, the second parent matrix
+	:return: array of arrays, the child matrix
 	"""
-	matrix_width, matrix_height = routers_placement1.shape
+	matrix_rows, matrix_columns = routers_placement1.shape
 
-	starting_point = 0
-	end_point = matrix_width - 1
-
-	split_point = random.randint(starting_point, end_point)
+	# computing splitting points
+	rows_mid = round(matrix_rows / 2)
+	columns_mid = round(matrix_columns / 2)
 
 	# extracting sub-matrices
-	parent1_left, parent1_right = routers_placement1[:, 0:split_point], routers_placement1[:, split_point:]
-	parent2_left, parent2_right = routers_placement2[:, 0:split_point], routers_placement2[:, split_point:]
+	matrix1_upper_left = routers_placement1[0:rows_mid, 0:columns_mid]
+	matrix1_down_right = routers_placement1[rows_mid:, columns_mid:]
+	matrix2_upper_right = routers_placement2[0:rows_mid, columns_mid:]
+	matrix2_down_left = routers_placement2[rows_mid:, 0:columns_mid]
 
 	# composing submatrices
-	new_routers_placement = np.concatenate((parent1_left, parent2_right), axis=1)
+	merged_matrix_upper = np.concatenate((matrix1_upper_left, matrix2_upper_right), axis=1)
+	merged_matrix_down = np.concatenate((matrix2_down_left, matrix1_down_right), axis=1)
 
-	return new_routers_placement
-
+	return np.concatenate((merged_matrix_upper, merged_matrix_down), axis=0)
 
 def get_weight_population_by_fitness(population: list, fitness_function) -> list:
 	"""
