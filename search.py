@@ -534,7 +534,7 @@ class Search:
                 wait = 0
             else:
                 wait+=1
-            if max_increment == self.range**2 or wait == patient:
+            if max_increment == (self.range*2 + 1)**2 or wait == patient:
                 return max_increment_coord, max_increment
         return max_increment_coord, max_increment
     def remove_router(self):

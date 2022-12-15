@@ -62,13 +62,13 @@ def hill_climb(data:Data, random_init=10, max_step=10, policy="best"):
         temp_score = get_number_covered_cells(router_mask, data.matrix, data.router_range)
         if temp_score == data.target_area :
             max_score = temp_score
-            best_routers_settings = copy(data.router_list)
+            best_routers_settings = copy(map_mask)
             break
         if temp_score > max_score:
             # todo
             # here we should take in consideration also the cost
             max_score = temp_score
-            best_routers_settings = copy(data.router_list)
+            best_routers_settings = copy(map_mask)
         print("ITERATION: {} \n FINAL SCORE: {}".format(j, temp_score))
             
     # print("FINAL CONFIGURATION: ")
