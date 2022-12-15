@@ -7,7 +7,7 @@ from Data import Data
 from hill_climbing import hill_climb
 from simulated_annealing import simulated_annealing
 from genetic_algorithm import genetic_algorithm
-
+import matplotlib.pyplot as plt
 
 def main(args):
     filepath = args.filepath
@@ -32,12 +32,12 @@ def main(args):
         best_configuration = genetic_algorithm(
             building_matrix=building_matrix,
             population=[
-                utils.get_random_router_placement(building_matrix, 10),
-                utils.get_random_router_placement(building_matrix, 10)
+                utils.get_random_router_placement(building_matrix, 5),
+                utils.get_random_router_placement(building_matrix, 5)
             ],
             fitness_function=fitness_function,
             mutation_probability=0.5,
-            max_iter=5,
+            max_iter=10,
             verbose=True
         )
     elif algorithm == "annealing":
@@ -75,13 +75,27 @@ def main(args):
         backbone_cost=data.backbone_cost,
         budget=data.budget
     ) )
-
+    """
     viz.plot_solution(
         building_matrix,
         best_configuration,
         [_ for _ in g.nodes()],
         data.initial_backbone
     )
+    viz.plot_heatmap(
+        building_matrix,
+        best_configuration,
+        router_radius
+    )
+    """
+    viz.plot_complete(
+        building_matrix,
+        best_configuration,
+        router_radius,
+        [_ for _ in g.nodes()],
+        data.initial_backbone
+    )
+    plt.show()
 
 
 if __name__  == "__main__":
