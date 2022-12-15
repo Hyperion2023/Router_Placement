@@ -276,6 +276,7 @@ class Search:
         self.router_list = router_list
         self.range = range
         self.target_coords = target_coords
+        self.cached_move_set = None
         
         for router_coords in zip(*map_mask.nonzero()):
             points_covered_by_router = self.get_router_coverage(router_coords)
@@ -355,6 +356,42 @@ class Search:
             else:
                 self.covered_dict[new_cov] += 1
                 
+    def do_cached(self):
+        router_idx = self.cached_move_set[0]
+        action = self.cached_move_set[1]
+        router = self.router_list[router_idx]
+        boundary = self.map_mask.shape
+        best_improve = 0
+        best_move_set = ()
+        start_coord = [router[0], router[1]]
+        self.map_mask[start_coord[0], start_coord[1]] = 0
+        old_pos_coverage = self.get_router_coverage(router)
+        decreased = 0
+        for old_cov in old_pos_coverage:
+            # print("oldcov:{}".format(old_cov))
+            assert old_cov in self.covered_dict, f"covered_dict:{self.covered_dict} \n old_cov:{old_cov}"
+            self.covered_dict[old_cov] -= 1
+            if self.covered_dict[old_cov] == 0:
+                decreased += 1
+        
+        for action in Action:
+            move(router, action)
+            # violating the boundary, should be reset
+            if ((router[0] >= boundary[0] or router[0] < 0) or 
+                (router[1] >= boundary[1] or router[1] < 0)):
+                restore_move(router, action)
+                continue
+            # checking if improved the fitness
+            improvement = self.calc_cost(router, decreased)
+            restore_move(router, action)
+            if improvement > best_improve:
+                best_move_set = (router_idx, action, improvement)
+                best_improve = improvement
+        for old_cov in old_pos_coverage:
+                self.covered_dict[old_cov] += 1
+        self.map_mask[start_coord[0], start_coord[1]] = 1
+        return best_move_set
+                
     def greedy_move(self):
         greedy_move_set = ()
         boundary = self.map_mask.shape
@@ -397,6 +434,10 @@ class Search:
     def best_move(self):
         best_move_set = ()
         best_improve = 0
+        if (self.cached_move_set is not None):
+            best_move_set = self.do_cached()
+            if best_move_set is not None:
+                return best_move_set                
         
         boundary = self.map_mask.shape
         for i, router in enumerate(self.router_list):
@@ -430,7 +471,6 @@ class Search:
             for old_cov in old_pos_coverage:
                 self.covered_dict[old_cov] += 1
             self.map_mask[start_coord[0], start_coord[1]] = 1
-        # self.update(best_move_set)
         return best_move_set
     
     # todo
@@ -468,7 +508,7 @@ class Search:
         # how can we test if removing a router is worth?
         pass
     
-    def optimization_step(self, policy, verbose=True):
+    def optimization_step(self, policy, verbose=0):
         """
         second stupid implementation
         
@@ -518,10 +558,12 @@ class Search:
                 print("fail")
                 return 0
         self.update(move_set)
+        self.cached_move_set = move_set
 
-        if(verbose):
-            print("OPTIMIZATION STEP:")
+        if(verbose < 2):
             print("\trouter: {}\t action:{}\n\tscore improved by: {}".format(move_set[0], move_set[1], move_set[2]))
+        if verbose >= 2:
             print_routers(self.building_matrix, self.router_list)
+
         return move_set[2]
 #endregion

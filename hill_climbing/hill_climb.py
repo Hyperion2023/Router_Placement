@@ -8,7 +8,7 @@ from search import Search
 from utils import get_number_covered_cells 
 from utils import print_routers
 
-def hill_climb(data:Data, random_init=10, max_step=50):    
+def hill_climb(data:Data, random_init=10, max_step=50, policy="best"):    
     for j in range(random_init):
         print("-------------------RANDOM INIT, iteration: {}------------------".format(j))
         data.random_init(num_routers=1)
@@ -33,13 +33,21 @@ def hill_climb(data:Data, random_init=10, max_step=50):
                         target_coords=target_coords, 
                         range=router_range)
         
+        if(policy == "best"):
+            policy = Policy.BEST
+        else:
+            policy = Policy.GREEDY
+        
         while i < 10:
-            improved = search.optimization_step(Policy.GREEDY, verbose=False)
-            
+            improved = search.optimization_step(policy, verbose=1)
             print("\tnew score: {}".format(starting_score+improved))
             starting_score += improved
-            if improved == 0 and starting_score ==  len(data.target_coords):
+            if improved == 0:
                 i += 1
+            else:
+                i = 0
+            if starting_score ==  len(data.target_coords):
+                break
         temp_score = get_number_covered_cells(router_mask, data.matrix, data.router_range)
         if temp_score == data.target_area :
             max_score = temp_score
