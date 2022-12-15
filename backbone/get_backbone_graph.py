@@ -14,6 +14,36 @@ def get_chebyshev_distance(point1: tuple, point2: tuple):
 	x2, y2 = point2
 	return max(abs(x1 - x2), abs(y1 - y2))
 
+def get_grid_graph(shape: tuple, backbone_unit_cost: int) -> nx.Graph:
+	"""
+	:param shape: tuple, the shape (number of rows and columns) of the grid graph
+	:param backbone_unit_cost: int, cost of a single backbone unit
+	:return: grid graph
+	"""
+	# creating the equivalent grid graph for the routers placement
+	n, m = shape
+	g = nx.grid_2d_graph(n, m)
+
+	# adding edges to the graph
+	g.add_edges_from(
+		[
+			((x, y), (x + 1, y + 1))
+			for x in range(n - 1)
+			for y in range(m - 1)
+		] +
+		[
+			((x + 1, y), (x, y + 1))
+			for x in range(n - 1)
+			for y in range(m - 1)
+		],
+		weight=backbone_unit_cost
+	)
+
+	# setting the weight of each edge to the cost of a backbone unit
+	for edge in g.edges():
+		g.edges()[edge]["weight"] = backbone_unit_cost
+
+	return g
 
 def get_backbone_graph(
 		backbone_starting_point: tuple,
@@ -29,23 +59,7 @@ def get_backbone_graph(
 	:return: the minimum sized graph that connects all the routers and the starting point
 	"""
 	# creating the equivalent grid graph for the routers placement
-	n, m = routers_placement.shape
-	g = nx.grid_2d_graph(n, m)
-
-	# adding edges to the graph
-	g.add_edges_from(
-		[
-			((x, y), (x + 1, y + 1))
-			for x in range(n-1)
-			for y in range(m-1)
-		] +
-		[
-			((x + 1, y), (x, y + 1))
-			for x in range(n-1)
-			for y in range(m-1)
-		],
-		weight=backbone_unit_cost
-	)
+	g = get_grid_graph(routers_placement.shape, backbone_unit_cost)
 
 	# finding routers coordinates inside the matrix
 	rows, columns = np.nonzero(routers_placement)
@@ -53,10 +67,6 @@ def get_backbone_graph(
 		(x, y)
 		for (x, y) in zip(rows, columns)
 	]
-
-	# setting the weight of each edge to the cost of a backbone unit
-	for edge in g.edges():
-		g.edges()[edge]["weight"] = backbone_unit_cost
 
 	# for each router, searching the shortest path
 	for router in routers_coords:
