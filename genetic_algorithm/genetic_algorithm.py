@@ -1,43 +1,42 @@
 import numpy as np
+from numba import njit, prange
 import random
+
 
 __all__ = ["genetic_algorithm"]
 
 
-def mutate(building_matrix: np.array, routers_placement: np.array) -> np.array:
+@njit(parallel=True)
+def flip_matrix(matrix: np.array, flip_p: float):
+	for i in prange(matrix.shape[0]):
+		for j in prange(matrix.shape[1]):
+			if np.random.rand() < flip_p:
+				matrix[i][j] = 1 if matrix[i][j] == 0 else 0
+
+def mutate(
+		building_matrix: np.array,
+		routers_placement: np.array,
+		flip_cell_prob: float = 0.05
+) -> np.array:
 	"""
-	Mutation consists in flipping a random position for each row
+	Flips randomly the routers, keeping only the routers in target cells (thus not placing
+	routers in void and walls)
 
 	:param building_matrix: array of arrays, indicates where are void, wall and target cells
 	:param routers_placement: array of arrays, a mask which indicates where are the routers in the original matrix;
 		cell is 1 if there is a router, else 0
-	:return: new mutated routers_placement
+	:param flip_cell_prob: float, probability that a cell is flipped
+	:return: the new routers placement
 	"""
-	is_wall = lambda c: c == "#"
-	is_void = lambda c: c == "-"
-	flip_cell = lambda c: 1 if c == 0 else 0
+	# generate new routers placement
+	new_routers_placement = np.array(routers_placement, dtype=int)
 
-	new_routers_placement = np.array(routers_placement)
+	# flips the new routers placement
+	flip_matrix(new_routers_placement, flip_cell_prob)
 
-	for (row_index, row) in enumerate(building_matrix):  # iterate over all rows
-		# if the row is all invalid cells (void/walls) then skip to next_row
-		if "." not in row:
-			continue
-
-		# generate a random (valid) position inside row
-		invalid_cell_to_flip = True
-		while invalid_cell_to_flip:
-			flipping_position = random.randint(0, len(row)-1)
-			cell = building_matrix[row_index][flipping_position]
-			# checks if it is a wall or void
-			if not is_wall(cell) and not is_void(cell):
-				invalid_cell_to_flip = False
-
-		# flip cell
-		new_routers_placement[row_index][flipping_position] = flip_cell(new_routers_placement[row_index][flipping_position])
-
-	return new_routers_placement
-
+	# eliminate routers where there are walls and voids
+	mask = np.where(building_matrix == ".", 1, 0)
+	return new_routers_placement & mask
 
 def reproduce(routers_placement1: np.array, routers_placement2: np.array) -> np.array:
 	"""
