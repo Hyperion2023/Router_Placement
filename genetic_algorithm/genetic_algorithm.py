@@ -1,6 +1,7 @@
 import numpy as np
 from numba import njit, prange
 import random
+from concurrent.futures import ProcessPoolExecutor
 
 
 __all__ = ["genetic_algorithm"]
@@ -68,6 +69,17 @@ def reproduce(routers_placement1: np.array, routers_placement2: np.array) -> np.
 
 	return np.concatenate((merged_matrix_upper, merged_matrix_down), axis=0)
 
+
+_func = None
+
+def worker_init(func):
+	global _func
+	_func = func
+
+
+def worker(x):
+	return _func(x)
+
 def get_weight_population_by_fitness(population: list, fitness_function) -> list:
 	"""
 	Computes for each configuration the probability to be selected (according to the fitness function)
@@ -79,10 +91,11 @@ def get_weight_population_by_fitness(population: list, fitness_function) -> list
 		corresponds to its value according to the fitness function
 	"""
 	# computing for each configuration the probability to be selected, according to the fitness function
-	weighted_population = [
-		(configuration, configuration_fitness[0])
-		for (configuration, configuration_fitness) in zip(population, map(fitness_function, population))
-	]
+	with ProcessPoolExecutor(initializer=worker_init, initargs=(fitness_function,)) as executor:
+		weighted_population = [
+			(configuration, configuration_fitness[0])
+			for (configuration, configuration_fitness) in zip(population, executor.map(worker, population))
+		]
 
 	# order by the fitness of configuration
 	weighted_population.sort(key=lambda x: x[1])
