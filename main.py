@@ -5,7 +5,7 @@ import viz
 import backbone
 from Data import Data
 from hill_climbing import hill_climb
-from simulated_annealing import simulated_annealing
+from simulated_annealing import SimulatedAnnealing
 from genetic_algorithm import genetic_algorithm
 import matplotlib.pyplot as plt
 
@@ -40,21 +40,26 @@ def main(args):
             max_iter=10,
             verbose=True
         )
+
     elif algorithm == "annealing":
-        best_configuration = simulated_annealing(
-            data=data,
-            initial_state=utils.get_random_router_placement(
+        annealing = SimulatedAnnealing(
+            data = data,
+            initial_state = utils.get_random_router_placement(
                 building_matrix=building_matrix,
                 number_routers= int(1.2 * utils.min_routers_optimal_condition(data=data))
             ),
-            number_iterations=40,
-            initial_temperature=1000,
-            fitness_function=fitness_function,
-            sigma=router_radius,
-            verbose=True
+            number_iterations = 40,
+            initial_temperature = 1000,
+            fitness_function = fitness_function,
+            sigma = data.router_range,
+            verbose = True 
         )
+        exit(0)
+        #best_configuration = annealing.run()
+
     elif algorithm == "hill":
         best_configuration = hill_climb(data=data)
+
     else:
         return
 
