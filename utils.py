@@ -122,6 +122,42 @@ def get_number_covered_cells(
     return len(covered_cells)
 
 
+def get_covered_cells(
+		routers_placement: np.array,
+		building_matrix: np.array,
+		router_range: int
+) -> set:
+    """
+    Given a placement of routers and the matrix of the building returns the unique target
+    cells covered, considering voids and walls.
+
+    :param routers_placement: the mask of the position of routers in the building
+    :param building_matrix: array of arrays, the matrix describing the building (voids, targets, walls)
+    :param router_range: range of the router
+    :return: the number of unique target cells covered
+    """
+    covered_cells = set()
+    # iterate over routers (non zero cells)
+    for router_coords in zip(*routers_placement.nonzero()):
+        # compute points covered by the router
+        points_covered_by_router = get_points_around_router(
+            routers_placement,
+            router_coords,
+            router_range
+        )
+        # filter points covered by walls and void cells
+        points_covered_by_router = filter_non_target_points(
+            building_matrix,
+            router_coords,
+            points_covered_by_router
+        )
+
+        for covered_cell in points_covered_by_router:
+            covered_cells.add(covered_cell)
+
+    return covered_cells
+
+
 def get_number_routers(
     routers_placement: np.array
 ) -> int:
@@ -131,6 +167,34 @@ def get_number_routers(
     :return: the number of routers
     """
     return np.count_nonzero(routers_placement)
+
+
+def get_uncovered(routers_placement, building_matrix, router_range):
+
+	"""
+	Given a router placement, the building matrix and the router range, it returns a list of tuples cotaining
+	the coordinates of target cells not covered by a router, considering the walls
+	"""
+    
+	covered_cells = get_covered_cells(
+		routers_placement,
+		building_matrix,
+		router_range
+	)
+	covered_cells = list(covered_cells)
+
+	np_to_cover = np.nonzero(building_matrix == ".")
+	to_cover = [(i, j) for (i, j) in zip(np_to_cover[0], np_to_cover[1])]
+
+	uncovered = []
+
+	for t in to_cover:
+		if t not in covered_cells:
+			uncovered.append(t)
+
+	uncovered = list(set(uncovered))
+
+	return uncovered
 
 
 def compute_fitness(
