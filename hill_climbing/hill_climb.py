@@ -25,11 +25,16 @@ def hill_climb(data:Data, random_init=10, max_step=50):
         building_matrix = data.matrix
         router_list = data.router_list
         router_range = data.router_range
+        target_coords = data.target_coords
         
-        search = Search(map_mask, building_matrix, router_list, router_range)
+        search = Search(map_mask=map_mask, 
+                        building_matrix=building_matrix,
+                        router_list=router_list, 
+                        target_coords=target_coords, 
+                        range=router_range)
         
         while i < 10:
-            improved = search.optimization_step(Policy.BEST, verbose=True)
+            improved = search.optimization_step(Policy.GREEDY, verbose=False)
             
             print("\tnew score: {}".format(starting_score+improved))
             starting_score += improved

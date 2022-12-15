@@ -258,7 +258,7 @@ class Search:
     the search class, based on the naive implementation but instead calculating each time the overall
     score, we calculate the score locally in the router coverage (it should be faster) 
     """
-    def __init__(self, map_mask, building_matrix, router_list, range) -> None:
+    def __init__(self, map_mask, building_matrix, router_list, target_coords, range) -> None:
         """Constructor
         initialize the coverage of each router in a dictionary form s.t. the pair <key, value> are defined as:
          - key is the coordinates the each covered cell
@@ -275,6 +275,7 @@ class Search:
         self.building_matrix = building_matrix
         self.router_list = router_list
         self.range = range
+        self.target_coords = target_coords
         
         for router_coords in zip(*map_mask.nonzero()):
             points_covered_by_router = self.get_router_coverage(router_coords)
@@ -433,14 +434,13 @@ class Search:
         return best_move_set
     
     # todo
-    def add_router(self):
+    def add_router(self, patient = 5):
         covered_cells = set(self.covered_dict.keys())
-            
-        target_coord = set()
-        for i, row in enumerate(self.building_matrix):
-            for j, item in enumerate(row):
-                if item == '.':
-                    target_coord.add((i,j))
+        target_coord = set(self.target_coords)
+        # for i, row in enumerate(self.building_matrix):
+        #     for j, item in enumerate(row):
+        #         if item == '.':
+        #             target_coord.add((i,j))
         
         to_cover = target_coord-covered_cells
         if len(to_cover) == 0:
@@ -449,12 +449,18 @@ class Search:
         max_increment_coord = None
         max_increment = 0
         increment = 0
+        wait = 0
         for coord in to_cover:
+            # print(f"testing: {i}-coord")
             increment = self.calc_cost(coord, 0)
             if increment > max_increment:
                 max_increment = increment
-                max_increment_coord = coord
-        max_increment_coord = np.reshape(np.array(max_increment_coord), (1,2)) # forcing the dimension of the new coordinates
+                max_increment_coord = np.reshape(np.array(coord), (1,2))# forcing the dimension of the new coordinates
+                wait = 0
+            else:
+                wait+=1
+            if max_increment == self.range**2 or wait == patient:
+                return max_increment_coord, max_increment
         return max_increment_coord, max_increment
     def remove_router(self):
         # todo 
@@ -497,15 +503,17 @@ class Search:
                 print("success")
                 # print("-"*50)
                 # print(f"coords: {pair[0]}")
+                # print(f"type of pair[0]: {type(pair[0])}")
                 # print(f"pair[0] shape: {pair[0].shape}")
                 # print(f"router list shape: {self.router_list.shape}")
                 # print(f"router list before inserting: {[item for item in self.router_list]}")
                 # print(f"router len before inserting: {len(self.router_list)}")
-                self.router_list = np.append(self.router_list, (pair[0]), axis=0)
+                self.router_list = np.append(self.router_list, pair[0], axis=0)
                 # print(f"router list after inserting: {[item for item in self.router_list]}")
                 # print(f"router len after inserting: {len(self.router_list)}")
                 # print("-"*50) 
                 move_set = (len(self.router_list)-1, Action.ADD, pair[1])
+                print(f"number of router: {len(self.router_list)}")
             else:
                 print("fail")
                 return 0

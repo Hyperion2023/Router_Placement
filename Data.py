@@ -59,7 +59,7 @@ class Data:
         for i, row in enumerate(self.matrix):
             for j, item in enumerate(row):
                 if item == '.':
-                    self.target_coords.append([i,j])
+                    self.target_coords.append((i,j))
                     
         router_init_list = []
         unique_randoms = random.sample(range(0, len(self.target_coords)), num_routers)
