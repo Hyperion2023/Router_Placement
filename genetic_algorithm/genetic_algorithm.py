@@ -1,5 +1,4 @@
 import numpy as np
-from numba import njit, prange
 import random
 from concurrent.futures import ProcessPoolExecutor
 
@@ -7,15 +6,12 @@ from concurrent.futures import ProcessPoolExecutor
 __all__ = ["genetic_algorithm"]
 
 
-@njit
-def flip_cell(c: int, flip_p) -> int:
-    if np.random.rand() < flip_p:
-        return 1 if c == 0 else 0
-    else:
-        return c
-
 def flip_matrix(matrix: np.array, flip_p: float) -> np.array:
-    return np.vectorize(flip_cell)(matrix, flip_p)
+	# generate a matrix with the positions to flip
+	flipped_positions_matrix = np.random.choice([0,1], matrix.shape, p=[1-flip_p, flip_p])
+
+	# flip the matrix (equivalent to a xor operation)
+	return np.where(np.logical_xor(matrix, flipped_positions_matrix), 1, 0)
 
 def mutate(
 		building_matrix: np.array,
