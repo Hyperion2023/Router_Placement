@@ -33,7 +33,7 @@ def mutate(
 	new_routers_placement = np.array(routers_placement, dtype=int)
 
 	# flips the new routers placement
-	flip_matrix(new_routers_placement, flip_cell_prob)
+	new_routers_placement = flip_matrix(new_routers_placement, flip_cell_prob)
 
 	# eliminate routers where there are walls and voids
 	mask = np.where(building_matrix == ".", 1, 0)
@@ -100,7 +100,9 @@ def get_weight_population_by_fitness(population: list, fitness_function) -> list
 	return weighted_population
 
 
-def choose_parents_population(weighted_population: list) -> tuple:
+def choose_parents_population(
+		weighted_population: list
+) -> tuple:
 	"""
 	Choose 2 parents in the population. A member of the population probability to be picked is proportional to its
 	value according to the fitness function.
@@ -134,12 +136,19 @@ def genetic_algorithm(
 	:param verbose: bool
 	:return: the best individual in population, according to fitness
 	"""
+	avg = lambda l: sum(l)/len(l) if len(l) != 0 else 0
+
 	for i in range(max_iter):  # iterate until some individual is fit enough, or enough time has elapsed
 		if verbose:
 			print(f"ITERATION {i}")
 
 		# weight each population member by fitness function
 		weighted_population = get_weight_population_by_fitness(population, fitness_function)
+
+		if verbose:
+			_, fitness_values = zip(*weighted_population)
+			# print max, min, average of fitness value
+			print(f"Population fitness min/max/avg = {min(fitness_values)}/{max(fitness_values)}/{avg(fitness_values)}")
 
 		new_population = []
 		for _ in range(len(population)):
