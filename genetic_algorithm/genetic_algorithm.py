@@ -94,7 +94,7 @@ def get_weight_population_by_fitness(population: list, fitness_function) -> list
 		]
 
 	# order by the fitness of configuration
-	weighted_population.sort(key=lambda x: x[1])
+	weighted_population.sort(key=lambda x: x[1], reverse=True)
 
 	return weighted_population
 
@@ -126,7 +126,8 @@ def genetic_algorithm(
 		building_matrix: np.array,
 		population: list,
 		fitness_function,
-		mutation_probability: float = None,
+		mutation_probability: float,
+		flip_cell_probability: float = 0.05,
 		max_iter: int = 1000,
 		verbose: bool = False
 ) -> np.array:
@@ -134,8 +135,8 @@ def genetic_algorithm(
 	:param building_matrix: array of arrays, indicates where are void, wall and target cells
 	:param population: list, list of configurations to use as a starting points
 	:param fitness_function: function, function used to evaluate the fitness of a configuration
-	:param mutation_probability: float, probability of a random mutation. If not specified, a random
-		probability is generated for every reproduction cycle
+	:param mutation_probability: float, probability of a random mutation.
+	:param flip_cell_probability: float, the probability that during a mutation cell is flipped
 	:param max_iter: int, maximum number of iterations cycles
 	:param verbose: bool
 	:return: the best individual in population, according to fitness
@@ -154,7 +155,11 @@ def genetic_algorithm(
 
 			# do a mutation
 			if random.random() < mutation_probability:
-				child = mutate(building_matrix, child)
+				child = mutate(
+					building_matrix,
+					child,
+					flip_cell_probability
+				)
 
 			# add new child to population
 			new_population.append(child)
@@ -163,6 +168,5 @@ def genetic_algorithm(
 
 	# return best individual found according to fitness
 	weighted_population = get_weight_population_by_fitness(population, fitness_function)
-	print(weighted_population[0][1])
-	print(weighted_population[1][1])
+
 	return weighted_population[0][0]
