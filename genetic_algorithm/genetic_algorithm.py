@@ -1,5 +1,6 @@
 import numpy as np
 import random
+import utils
 from concurrent.futures import ProcessPoolExecutor
 
 
@@ -99,25 +100,17 @@ def get_weight_population_by_fitness(population: list, fitness_function) -> list
 	return weighted_population
 
 
-def choose_parents_population(population: list, fitness_function) -> tuple:
+def choose_parents_population(weighted_population: list) -> tuple:
 	"""
 	Choose 2 parents in the population. A member of the population probability to be picked is proportional to its
 	value according to the fitness function.
 
-	:param population: list, list of routers placement
-	:param fitness_function: function that, taken a routers placement as its parameter, returns its value
-	:return: tuple, a couple of randomly selected configurations weighted by their fitness value
+	:param weighted_population: list, a list containing tuples in the form (configuration, fitness value of configuration)
+	:return: tuple, a couple of randomly selected configurations
 	"""
-	weighted_population = get_weight_population_by_fitness(population, fitness_function)
-
 	# selected 2 parents with a probabity proportial to the configuration fitness
-	configurations = []
-	fitnesses = []
-	for (configuration, configuration_fitness) in weighted_population:
-		configurations.append(configuration)
-		fitnesses.append(configuration_fitness)
-
-	picked_parents = (random.choices(configurations, weights=fitnesses, k=2))
+	configurations, fitnesses = zip(*weighted_population)
+	picked_parents = random.choices(configurations, weights=fitnesses, k=2)
 
 	return picked_parents[0], picked_parents[1]
 
@@ -145,10 +138,13 @@ def genetic_algorithm(
 		if verbose:
 			print(f"ITERATION {i}")
 
+		# weight each population member by fitness function
+		weighted_population = get_weight_population_by_fitness(population, fitness_function)
+
 		new_population = []
 		for _ in range(len(population)):
 			# select randomly two individuals in the population, preferring these with better fitness
-			parent1, parent2 = choose_parents_population(population, fitness_function)
+			parent1, parent2 = choose_parents_population(weighted_population)
 
 			# let the parents reproduce
 			child = reproduce(parent1, parent2)
