@@ -500,7 +500,7 @@ class Search:
             self.map_mask[start_coord[0], start_coord[1]] = 1
         return best_move_set
     
-    def add_router(self, patient = 5):
+    def add_router(self, patient = 10):
         """tries to add a new router in the map with some patience
         if after patient pass in a row I can't find an improvement
 

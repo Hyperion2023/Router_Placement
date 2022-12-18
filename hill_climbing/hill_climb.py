@@ -7,8 +7,9 @@ from search import Policy
 from search import Search
 from utils import get_number_covered_cells 
 from utils import print_routers
+import matplotlib.pyplot as plt
 
-def hill_climb(data:Data, random_init=10, max_step=10, policy="best"):
+def hill_climb(data:Data, random_init=1, max_step=10, policy="best"):
     """the hill climbing algorithm for router placement
 
     Args:
@@ -49,27 +50,32 @@ def hill_climb(data:Data, random_init=10, max_step=10, policy="best"):
         else:
             policy = Policy.GREEDY
         
+        scores = [starting_score]
         while i < max_step:
             improved = search.optimization_step(policy, verbose=1)
             print("\tnew score: {}".format(starting_score+improved))
             starting_score += improved
+            scores.append(starting_score)
             if improved == 0:
                 i += 1
             else:
                 i = 0
             if starting_score ==  len(data.target_coords):
                 break
+        plt.plot(scores)
+        plt.title(f"Iteration: {j}")
+        plt.xlabel("step")
+        plt.ylabel("score")
+        plt.show()
         temp_score = get_number_covered_cells(router_mask, data.matrix, data.router_range)
         if temp_score == data.target_area :
             max_score = temp_score
             best_routers_settings = copy(map_mask)
             break
         if temp_score > max_score:
-            # todo
-            # here we should take in consideration also the cost
             max_score = temp_score
             best_routers_settings = copy(map_mask)
-        print("ITERATION: {} \n FINAL SCORE: {}".format(j, temp_score))
+        # print("ITERATION: {} \n FINAL SCORE: {}".format(j, temp_score))
             
     # print("FINAL CONFIGURATION: ")
     return best_routers_settings
