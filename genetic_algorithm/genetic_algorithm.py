@@ -80,7 +80,7 @@ def worker(x):
 def get_weight_population_by_fitness(population: list, fitness_function) -> list:
 	"""
 	Computes for each configuration the probability to be selected (according to the fitness function)
-	and returns the configurations (ordered in ascending order)
+	and returns the configurations (ordered in descending order)
 
 	:param population: list, list of routers placement
 	:param fitness_function: function that, taken a routers placement as its parameter, returns its value
