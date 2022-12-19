@@ -139,7 +139,8 @@ def compute_fitness(
 		backbone_starting_point: tuple,
 		router_cost: int,
 		backbone_cost: int,
-		budget: int
+		budget: int,
+		return_numeric: bool = False
 	) -> tuple:
 
 	"""
@@ -172,8 +173,11 @@ def compute_fitness(
 	total_cost = number_routers*router_cost + backbone_length*backbone_cost
 
 	score = 1000 * number_covered_cells + (budget - total_cost )
-	
-	return score, total_cost > budget
+
+	if return_numeric:
+		return score if total_cost <= budget else -1, total_cost > budget
+	else:
+		return score, total_cost > budget
 
 
 def get_random_router_placement(

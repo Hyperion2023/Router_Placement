@@ -14,10 +14,39 @@ def flip_matrix(matrix: np.array, flip_p: float) -> np.array:
 	# flip the matrix (equivalent to a xor operation)
 	return np.where(np.logical_xor(matrix, flipped_positions_matrix), 1, 0)
 
+def shuffle_routers(
+		building_matrix: np.array,
+		routers_placement: np.array
+) -> np.array:
+	# finding all the available (target) cells in the building
+	available_cells_matrix = np.where(building_matrix == ".", 1, 0)
+	available_cells = np.fromiter(zip(*available_cells_matrix.nonzero()), dtype=tuple)
+
+	# generating new random positions for the routers
+	number_routers = np.count_nonzero(routers_placement)
+	new_routers_coords = np.random.choice(available_cells, number_routers, replace=False)
+
+	# creating the new random placement
+	new_routers_placement = np.zeros(shape=routers_placement.shape)
+	for (i, j) in new_routers_coords:
+		new_routers_placement[i][j] = 1
+
+	return new_routers_placement
+
+def insert_routers(building_matrix, routers_placement, insert_prob: float):
+	new_routers_placement = np.array(routers_placement, dtype=int
+									 )
+	insertion_matrix = np.random.choice([0,1], routers_placement.shape, p=[1-insert_prob, insert_prob])
+
+	available_cells_matrix = np.where(building_matrix == ".", 1, 0)
+	insertion_matrix = insertion_matrix & available_cells_matrix
+
+	return new_routers_placement | insertion_matrix
+
 def mutate(
 		building_matrix: np.array,
 		routers_placement: np.array,
-		flip_cell_prob: float = 0.05
+		flip_cell_prob: float = 0.05,
 ) -> np.array:
 	"""
 	Flips randomly the routers, keeping only the routers in target cells (thus not placing
@@ -77,15 +106,16 @@ def worker_init(func):
 def worker(x):
 	return _func(x)
 
-def get_weight_population_by_fitness(population: list, fitness_function) -> list:
+def get_weight_population_by_fitness(population: list, fitness_function) -> tuple:
 	"""
 	Computes for each configuration the probability to be selected (according to the fitness function)
 	and returns the configurations (ordered in descending order)
 
 	:param population: list, list of routers placement
 	:param fitness_function: function that, taken a routers placement as its parameter, returns its value
-	:return: list of tuples, for each tuple the first element contains the routers placement, while the second element
-		corresponds to its value according to the fitness function
+	:return: tuple, the first element is the best individual in the population, the latter is a list of tuples,
+	for each tuple the first element contains the routers placement, while the second element corresponds to its value
+	according to the fitness function
 	"""
 	# computing for each configuration the probability to be selected, according to the fitness function
 	with ProcessPoolExecutor(initializer=worker_init, initargs=(fitness_function,)) as executor:
@@ -97,7 +127,7 @@ def get_weight_population_by_fitness(population: list, fitness_function) -> list
 	# order by the fitness of configuration
 	weighted_population.sort(key=lambda x: x[1], reverse=True)
 
-	return weighted_population
+	return weighted_population[0], weighted_population
 
 
 def choose_parents_population(
@@ -137,16 +167,24 @@ def genetic_algorithm(
 	:return: the best individual in population, according to fitness
 	"""
 	avg = lambda l: sum(l)/len(l) if len(l) != 0 else 0
+	best_individual_found = None
 
 	for i in range(max_iter):  # iterate until some individual is fit enough, or enough time has elapsed
 		if verbose:
 			print(f"ITERATION {i}")
 
 		# weight each population member by fitness function
-		weighted_population = get_weight_population_by_fitness(population, fitness_function)
+		best_individual_in_population, weighted_population = get_weight_population_by_fitness(population, fitness_function)
+		if best_individual_found is None:
+			best_individual_found = best_individual_in_population
+		else:
+			if best_individual_in_population[1] > best_individual_found[1]:
+				best_individual_found = best_individual_in_population
 
 		if verbose:
 			_, fitness_values = zip(*weighted_population)
+			# print fitnesses
+			print(f"Fitnesses = {fitness_values}")
 			# print max, min, average of fitness value
 			print(f"Population fitness min/max/avg = {min(fitness_values)}/{max(fitness_values)}/{avg(fitness_values)}")
 
@@ -172,6 +210,13 @@ def genetic_algorithm(
 		population = new_population
 
 	# return best individual found according to fitness
-	weighted_population = get_weight_population_by_fitness(population, fitness_function)
+	best_individual_in_population, weighted_population = get_weight_population_by_fitness(population, fitness_function)
 
-	return weighted_population[0][0]
+	if best_individual_found is None:
+		return best_individual_in_population[0]
+	else:
+		if best_individual_in_population[1] > best_individual_found[1]:
+			return best_individual_in_population[0]
+		else:
+			return best_individual_found[0]
+
