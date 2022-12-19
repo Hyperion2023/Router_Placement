@@ -4,7 +4,7 @@ import argparse
 import viz
 import backbone
 from Data import Data
-from simulated_annealing import simulated_annealing
+#from simulated_annealing import simulated_annealing
 from genetic_algorithm import genetic_algorithm
 import matplotlib.pyplot as plt
 
@@ -32,10 +32,14 @@ def main(args):
             building_matrix=building_matrix,
             population=[
                 utils.get_random_router_placement(building_matrix, 5),
+                utils.get_random_router_placement(building_matrix, 5),
+                utils.get_random_router_placement(building_matrix, 5),
                 utils.get_random_router_placement(building_matrix, 5)
             ],
+            data=data,
             fitness_function=fitness_function,
-            mutation_probability=0.5,
+            mutation_probability=1,
+            flip_cell_probability=0.01,
             max_iter=10,
             verbose=True
         )

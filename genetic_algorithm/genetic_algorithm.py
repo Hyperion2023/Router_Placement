@@ -1,72 +1,163 @@
 import numpy as np
 import random
-import utils
 from concurrent.futures import ProcessPoolExecutor
+from classes import PriorityDict, Cell
+import utils
+import Data
 
 
 __all__ = ["genetic_algorithm"]
 
 
-def flip_matrix(matrix: np.array, flip_p: float) -> np.array:
-	# generate a matrix with the positions to flip
-	flipped_positions_matrix = np.random.choice([0,1], matrix.shape, p=[1-flip_p, flip_p])
-
-	# flip the matrix (equivalent to a xor operation)
-	return np.where(np.logical_xor(matrix, flipped_positions_matrix), 1, 0)
-
-def shuffle_routers(
+def init_pri_dic(
 		building_matrix: np.array,
-		routers_placement: np.array
+		routers_placement: np.array,
+		router_range: int
+) -> PriorityDict:
+	"""
+	Initialize the dictionary with the order on the values such that for each target cell of the matrix there is an entry in the dictionary
+	"""
+	# we want to add each cell of the grid and then update the coverage level
+	pri_dict = PriorityDict()
+
+	# add all the target coords to the priority dict
+	target_coords = np.nonzero(building_matrix == ".")
+	for (i, j) in zip(target_coords[0], target_coords[1]):
+		pri_dict.add_element((i, j))
+
+	# iterate the router and update the nearby cells
+	router_coords = routers_placement.nonzero()
+	for (i, j) in zip(router_coords[0], router_coords[1]):  # for each router
+
+		# filter points covered by walls and void cells
+		points_covered_by_router = utils.filter_non_target_points(
+			building_matrix=building_matrix,
+			router_coords=(i, j),
+			points=utils.get_points_around_router(
+				matrix=building_matrix,
+				router_coords=(i, j),
+				router_radius=router_range
+			)
+		)
+
+		for (x, y) in points_covered_by_router:  # for each point (cell) covered by the router
+			pri_dict.edit_element((x, y), 1)
+
+	pri_dict.shuffle()
+	pri_dict.order()
+
+	return pri_dict
+
+
+def _update_neighbor(
+		pri_dic: PriorityDict,
+		building_matrix: np.array,
+		router: tuple[int, int],
+		router_range: int,
+		delta: int
+):
+	"""
+	Given a router position and a delta value, update the coverage value of all the cells covered by the router with the delta, the walls are taken into account
+	:param router: tuple of two int, the position of the router
+	:param delta: int, the delta to apply to the near cells
+	"""
+	x, y = router
+
+	points_covered_by_router = utils.filter_non_target_points(
+		building_matrix=building_matrix,
+		router_coords=(x, y),
+		points=utils.get_points_around_router(
+			matrix=building_matrix,
+			router_coords=(x, y),
+			router_radius=router_range
+		)
+	)
+	for (x, y) in points_covered_by_router:  # for each point (cell) covered by the router
+		pri_dic.edit_element((x, y), delta=delta)  # edit the point
+
+
+def _state_neighbor(
+		pri_dic: PriorityDict,
+		building_matrix: np.array,
+		routers_placement: np.array,
+		router_range: int,
+		move_type: str
 ) -> np.array:
-	# finding all the available (target) cells in the building
-	available_cells_matrix = np.where(building_matrix == ".", 1, 0)
-	available_cells = np.fromiter(zip(*available_cells_matrix.nonzero()), dtype=tuple)
+	"""
+	Given a move type, returns the new state in the solution space.
+	If the move is 'add' a new router will be add in the less covered cell,
+	if the move is 'remove' the nearest router to the most covered cell will be removed
+	:param move_type: string, the type of move to perform, if it is not supported, a random move will be performed
+	:returns: np.array, the new state
+	"""
 
-	# generating new random positions for the routers
-	number_routers = np.count_nonzero(routers_placement)
-	new_routers_coords = np.random.choice(available_cells, number_routers, replace=False)
+	supported_moves = ["add", "remove"]
 
-	# creating the new random placement
-	new_routers_placement = np.zeros(shape=routers_placement.shape)
-	for (i, j) in new_routers_coords:
-		new_routers_placement[i][j] = 1
+	new_state = np.copy(routers_placement)
 
-	return new_routers_placement
+	if move_type not in supported_moves:
+		move_type = random.choice(supported_moves)
 
-def insert_routers(building_matrix, routers_placement, insert_prob: float):
-	new_routers_placement = np.array(routers_placement, dtype=int
-									 )
-	insertion_matrix = np.random.choice([0,1], routers_placement.shape, p=[1-insert_prob, insert_prob])
+	if move_type == "add":  # add one router
+		while True:
+			x, y = pri_dic.get_lower()  # the cell with less coverage
+			if routers_placement[x][y] == 0:  # there is not another router in that cell
+				new_state[x][y] = 1
+				break
 
-	available_cells_matrix = np.where(building_matrix == ".", 1, 0)
-	insertion_matrix = insertion_matrix & available_cells_matrix
+		# we have to update the near cells
+		_update_neighbor(
+			pri_dic=pri_dic,
+			building_matrix=building_matrix,
+			router=(x, y),
+			router_range=router_range,
+			delta=+1
+		)
 
-	return new_routers_placement | insertion_matrix
+	elif move_type == "remove":  # remove one router
+		target = pri_dic.get_higer()  # the cell with most coverage
+		to_remove = utils.get_nearest_router(cell=target, routers=routers_placement)
+		x, y = to_remove
+		new_state[x][y] = 0
+
+		# we have to update the near cells
+		_update_neighbor(
+			pri_dic=pri_dic,
+			building_matrix=building_matrix,
+			router=(x, y),
+			router_range=router_range,
+			delta=-1
+		)
+	else:
+		pass
+
+	return new_state
 
 def mutate(
 		building_matrix: np.array,
 		routers_placement: np.array,
-		flip_cell_prob: float = 0.05,
+		router_range: int,
+		fitness_function
 ) -> np.array:
 	"""
-	Flips randomly the routers, keeping only the routers in target cells (thus not placing
-	routers in void and walls)
 
-	:param building_matrix: array of arrays, indicates where are void, wall and target cells
-	:param routers_placement: array of arrays, a mask which indicates where are the routers in the original matrix;
-		cell is 1 if there is a router, else 0
-	:param flip_cell_prob: float, probability that a cell is flipped
 	:return: the new routers placement
 	"""
-	# generate new routers placement
-	new_routers_placement = np.array(routers_placement, dtype=int)
+	pri_dic = init_pri_dic(building_matrix, routers_placement, router_range)
+	pri_dic.shuffle()  # shuffle priority dict
+	pri_dic.order()  # ordinate priority dict
 
-	# flips the new routers placement
-	new_routers_placement = flip_matrix(new_routers_placement, flip_cell_prob)
+	# evaluate child
+	_, out_of_budget = fitness_function(routers_placement)
 
-	# eliminate routers where there are walls and voids
-	mask = np.where(building_matrix == ".", 1, 0)
-	return new_routers_placement & mask
+	move_type = "remove" if out_of_budget else "add"
+	return _state_neighbor(
+		pri_dic=pri_dic,
+		building_matrix=building_matrix,
+		routers_placement=routers_placement,
+		router_range=router_range,
+		move_type=move_type
+	)
 
 def reproduce(routers_placement1: np.array, routers_placement2: np.array) -> np.array:
 	"""
@@ -150,6 +241,7 @@ def choose_parents_population(
 def genetic_algorithm(
 		building_matrix: np.array,
 		population: list,
+		data: Data,
 		fitness_function,
 		mutation_probability: float,
 		flip_cell_probability: float = 0.05,
@@ -198,10 +290,14 @@ def genetic_algorithm(
 
 			# do a mutation
 			if random.random() < mutation_probability:
+				if verbose:
+					print("A random mutation occurred in a child!")
+
 				child = mutate(
 					building_matrix,
 					child,
-					flip_cell_probability
+					data.router_range,
+					fitness_function
 				)
 
 			# add new child to population
