@@ -8,6 +8,7 @@ from hill_climbing import hill_climb
 from priority_solution import PrioritySolution
 from genetic_algorithm import genetic_algorithm
 import matplotlib.pyplot as plt
+from simulated_annealing import simulated_annealing
 
 def main(args):
     filepath = args.filepath
@@ -41,17 +42,31 @@ def main(args):
             verbose=True
         )
 
-    elif algorithm == "annealing":
-        annealing = PrioritySolution(
+    elif algorithm == "priority":
+        priority = PrioritySolution(
             data = data,
             initial_state = utils.get_grid_router_placement(data=data, rescale_range_factor= 0.6),
             fitness_function=fitness_function,
             verbose = True 
         )
         
-        best_configuration = annealing.run( 
-            num_iterations = 40,
+        best_configuration = priority.run( 
+            num_iterations = 10,
             evaluation_delay = 3
+        )
+    elif algorithm == "annealing":
+        best_configuration = simulated_annealing(
+            data=data,
+            initial_state=utils.get_random_router_placement(
+                building_matrix=building_matrix,
+                number_routers= int(1.2 * utils.min_routers_optimal_condition(data=data))
+            ),
+            number_iterations=4,
+            initial_temperature=1000,
+            building_matrix=building_matrix,
+            fitness_function=fitness_function,
+            sigma=router_radius,
+            verbose=True
         )
 
     elif algorithm == "hill":
