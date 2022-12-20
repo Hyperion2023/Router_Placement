@@ -6,8 +6,10 @@ import backbone
 from Data import Data
 from hill_climbing import hill_climb
 #from simulated_annealing import simulated_annealing
+from priority_solution import PrioritySolution
 from genetic_algorithm import genetic_algorithm
 import matplotlib.pyplot as plt
+from simulated_annealing import simulated_annealing
 
 def main(args):
     filepath = args.filepath
@@ -42,6 +44,18 @@ def main(args):
             mutation_probability=0.5,
             max_iter=10,
             verbose=True
+        )
+    elif algorithm == "priority":
+        priority = PrioritySolution(
+            data = data,
+            initial_state = utils.get_grid_router_placement(data=data, rescale_range_factor= 0.6),
+            fitness_function=fitness_function,
+            verbose = True
+        )
+
+        best_configuration = priority.run(
+            num_iterations = 10,
+            evaluation_delay = 3
         )
     elif algorithm == "annealing":
         best_configuration = simulated_annealing(

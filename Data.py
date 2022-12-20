@@ -41,6 +41,7 @@ class Data:
                 python_matrix.append([str(c) for c in line][:len(line)-1])
             
             self.matrix = np.array(python_matrix, dtype=str)
+            self.building_matrix = self.matrix
             
             self.target_area = np.count_nonzero(self.matrix == ".")
             self.coverage_mask = np.full((self.height, self.width), False, dtype=bool)

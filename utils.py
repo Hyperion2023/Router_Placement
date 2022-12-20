@@ -122,6 +122,42 @@ def get_number_covered_cells(
     return len(covered_cells)
 
 
+def get_covered_cells(
+		routers_placement: np.array,
+		building_matrix: np.array,
+		router_range: int
+) -> set:
+    """
+    Given a placement of routers and the matrix of the building returns the unique target
+    cells covered, considering voids and walls.
+
+    :param routers_placement: the mask of the position of routers in the building
+    :param building_matrix: array of arrays, the matrix describing the building (voids, targets, walls)
+    :param router_range: range of the router
+    :return: the number of unique target cells covered
+    """
+    covered_cells = set()
+    # iterate over routers (non zero cells)
+    for router_coords in zip(*routers_placement.nonzero()):
+        # compute points covered by the router
+        points_covered_by_router = get_points_around_router(
+            routers_placement,
+            router_coords,
+            router_range
+        )
+        # filter points covered by walls and void cells
+        points_covered_by_router = filter_non_target_points(
+            building_matrix,
+            router_coords,
+            points_covered_by_router
+        )
+
+        for covered_cell in points_covered_by_router:
+            covered_cells.add(covered_cell)
+
+    return covered_cells
+
+
 def get_number_routers(
     routers_placement: np.array
 ) -> int:
@@ -132,6 +168,92 @@ def get_number_routers(
     """
     return np.count_nonzero(routers_placement)
 
+
+def get_uncovered(routers_placement, building_matrix, router_range):
+
+	"""
+	Given a router placement, the building matrix and the router range, it returns a list of tuples cotaining
+	the coordinates of target cells not covered by a router, considering the walls
+	"""
+    
+	covered_cells = get_covered_cells(
+		routers_placement,
+		building_matrix,
+		router_range
+	)
+	covered_cells = list(covered_cells)
+
+	np_to_cover = np.nonzero(building_matrix == ".")
+	to_cover = [(i, j) for (i, j) in zip(np_to_cover[0], np_to_cover[1])]
+
+	uncovered = []
+
+	for t in to_cover:
+		if t not in covered_cells:
+			uncovered.append(t)
+
+	uncovered = list(set(uncovered))
+
+	return uncovered
+
+def get_nearest_router(cell : tuple[int, int], routers : np.array) -> tuple[int, int]:
+    """
+    Find the nearest router to a given cell ignoring the walls, so the router position returned is not the nearest router that covers the specified cell
+
+    Args:
+        cell: tuple, the cell to be considered
+        routers: numpy array of arrays, the position of the routers
+
+    Returns:
+        tuple of int indicating the nearest router to cell
+    """
+    m, n = routers.shape
+    cell_row, cell_col = cell
+    
+    
+    def valid_with_router(i,j):
+        if 0 <= i < m and 0 <= j < n: # the cell is valid
+            if routers[i][j] == 1: #the cell contains a router
+                return True 
+        return False
+
+
+    for dist in range(max(*routers.shape)):
+        for i in np.arange(start = cell_row - dist, stop = cell_row + dist + 1, step=1): # iteraring the left and right columns
+            if valid_with_router(i, cell_col - dist): # left column
+                return (i, cell_col - dist)
+            if valid_with_router(i, cell_col + dist):   # right column
+                return (i, cell_col + dist)
+
+        for j in np.arange(start= cell_col - dist +1, stop= cell_col + dist, step=1): # iterating upper and bottom rows , skipping elements alredy iterated before
+            if valid_with_router(cell_row - dist, j): #upper row
+                return (cell_row -dist, j)
+            if valid_with_router(cell_row + dist, j): #bottom row
+                return(cell_row+dist, j)
+
+def get_grid_router_placement(data : Data, rescale_range_factor : float = 1) -> np.array:
+
+    """
+    Generate a grid placement of the routers inside the building such that no one cell is covered by two routers (but there could be not covered cells),
+    is it also possible to rescale the router range before us it to build the grid, in order to get a more granular coverage (but in this case a cell could be covered by more than one router)
+
+    :param data: Data type, contains info about the problem
+    :param rescale_range_factor: float, will be multiplied to the real router range
+    """
+    
+    range = int(data.router_range * rescale_range_factor)
+    
+    router_placement = np.zeros(shape = data.building_matrix.shape)
+
+    for i in np.arange(range, data.height - range , range *2 +1):
+        for j in np.arange(range , data.width - range , range*2 +1):
+            if data.building_matrix[i][j] == '.':
+                router_placement[i][j] = 1
+    
+    return router_placement
+
+
+        
 
 def compute_fitness(
 		building_matrix: np.array,
