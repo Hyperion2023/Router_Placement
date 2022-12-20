@@ -2,8 +2,8 @@ import utils
 import argparse
 import viz
 import backbone
-from Data import Data
-#from hill_climbing import hill_climb
+from classes.Data import Data
+from hill_climbing import hill_climb
 from priority_solution import priority
 from genetic_algorithm import genetic_algorithm
 import matplotlib.pyplot as plt
@@ -65,8 +65,14 @@ def main(args):
 			verbose=True
 		)
 	elif algorithm == "hill":
-		best_configuration = hill_climb(data=data)
+		best_configuration = hill_climb(
+			data=data,
+			random_init=10,
+			max_step=50,
+			policy="best"
+		)
 	else:
+		print("The selected algorithm does not exist!")
 		return
 
 	g = backbone.get_backbone_graph(

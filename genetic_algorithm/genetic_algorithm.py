@@ -1,9 +1,7 @@
 import numpy as np
 import random
 from concurrent.futures import ProcessPoolExecutor
-from classes import PrioritySolution
-import Data
-
+from classes import PrioritySolution, Data
 
 __all__ = ["genetic_algorithm"]
 

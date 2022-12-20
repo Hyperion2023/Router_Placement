@@ -1,7 +1,7 @@
 import random as rm
 import utils
 import numpy as np
-import Data
+from classes import Data
 import random
 from classes.PriorityDict import PriorityDict
 

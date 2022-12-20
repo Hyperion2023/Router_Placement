@@ -1,11 +1,7 @@
-import Data
 import numpy as np
 import random
 from enum import Enum
-from utils import get_number_covered_cells
-from utils import get_points_around_router
-from utils import filter_non_target_points
-#from utils import print_routers
+from utils import get_number_covered_cells, get_points_around_router, filter_non_target_points
 
 class NotValidPolicyExcception(Exception):
     pass
@@ -210,7 +206,7 @@ def optimization_step(map_mask, building_matrix, router_list, range, policy, ver
         router_list (list): the list of router coordinates
         range (int): the router coverage range
         policy (Policy): the applied policy to find the move
-        verbose (str): if True, the move taken and the difference about the score achieved is displayed
+        verbose (bool): if True, the move taken and the difference about the score achieved is displayed
 
     Raise:
         NotValidPolicyExcception if the policy chosen is not a valid one, an exception is raised
@@ -222,7 +218,7 @@ def optimization_step(map_mask, building_matrix, router_list, range, policy, ver
     if policy == Policy.BEST:
         move_set = best_move(score, map_mask, building_matrix, router_list, range)
     elif policy == Policy.GREEDY:
-        move_set = greedy_move(score, map_mask, building_matrix, router_list, range)
+        move_set = greedy_move(score, map_mask, building_matrix, router_list)
     else:
         raise NotValidPolicyExcception("Not a valid policy")
     if len(move_set) != 3:
@@ -242,11 +238,11 @@ def optimization_step(map_mask, building_matrix, router_list, range, policy, ver
     move(chosen_router, move_set[1])
     map_mask[chosen_router[0], chosen_router[1]] = 1
     improved = move_set[2] - score
-    if(verbose):
+    if verbose:
         print("OPTIMIZATION STEP:")
         print("\tscore before: {}\n\tascore after: {}".format(score, move_set[2]))
         print("\trouter: {}\t action:{}\n\tscore improved by: {}".format(move_set[0], move_set[1], improved))
-        print_routers(building_matrix, router_list)
+        #print_routers(building_matrix, router_list)
     return improved
 
 #endregion    
@@ -575,17 +571,7 @@ class Search:
             pair = self.add_router()
             if  pair is not None:
                 print("success")
-                # print("-"*50)
-                # print(f"coords: {pair[0]}")
-                # print(f"type of pair[0]: {type(pair[0])}")
-                # print(f"pair[0] shape: {pair[0].shape}")
-                # print(f"router list shape: {self.router_list.shape}")
-                # print(f"router list before inserting: {[item for item in self.router_list]}")
-                # print(f"router len before inserting: {len(self.router_list)}")
                 self.router_list = np.append(self.router_list, pair[0], axis=0)
-                # print(f"router list after inserting: {[item for item in self.router_list]}")
-                # print(f"router len after inserting: {len(self.router_list)}")
-                # print("-"*50) 
                 move_set = (len(self.router_list)-1, Action.ADD, pair[1])
                 print(f"number of router: {len(self.router_list)}")
             else:
@@ -594,10 +580,10 @@ class Search:
         self.update(move_set)
         self.cached_move_set = move_set
 
-        if(verbose < 2):
+        if verbose:
             print("\trouter: {}\t action:{}\n\tscore improved by: {}".format(move_set[0], move_set[1], move_set[2]))
-        if verbose >= 2:
-            print_routers(self.building_matrix, self.router_list)
+        #if verbose >= 2:
+            #print_routers(self.building_matrix, self.router_list)
 
         return move_set[2]
 #endregion

@@ -1,7 +1,6 @@
 import random as rm
-import utils
 import numpy as np
-import Data
+from classes import Data
 
 __all__ = ["simulated_annealing"]
 

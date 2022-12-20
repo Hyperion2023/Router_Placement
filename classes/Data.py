@@ -18,9 +18,6 @@ class Data:
 
 
     """
-
-    
-    
     def __init__(self, file_path : str):
         
         with open(file_path, "r") as f:
@@ -77,5 +74,3 @@ class Data:
         for router in self.router_list:
             mask[router[0], router[1]] = 1
         return mask
-    
-        
