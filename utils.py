@@ -242,22 +242,37 @@ def min_routers_optimal_condition(data : Data) -> int:
     num_router = math.ceil(target_area/router_coverage)
     return num_router
 
-def print_matrix(matrix):
-    """
-	utility function that prints the map
-	"""
-    for row in matrix:
-        for item in row:
-            print(item, end='')
-        print("")
 
-    
-def print_routers(matrix, router_coords):
-    """
-	utility function that prints the map with routers position 
+def get_nearest_router(cell: tuple[int, int], routers: np.array) -> tuple[int, int]:
 	"""
-    matrix_copy = copy(matrix)
+	Find the nearest router to a given cell ignoring the walls, so the router position returned is not the nearest router that covers the specified cell
+	Args:
+		cell: tuple, the cell to be considered
+		routers: numpy array of arrays, the position of the routers
+	Returns:
+		tuple of int indicating the nearest router to cell
+	"""
+	m, n = routers.shape
+	cell_row, cell_col = cell
 
-    for rout in router_coords:
-        matrix_copy[rout[0], rout[1]] = "R"
-    print_matrix(matrix_copy)
+	def valid_with_router(i, j):
+		if 0 <= i < m and 0 <= j < n:  # the cell is valid
+			if routers[i][j] == 1:  # the cell contains a router
+				return True
+		return False
+
+	for dist in range(max(*routers.shape)):
+		for i in np.arange(start=cell_row - dist, stop=cell_row + dist + 1,
+						   step=1):  # iteraring the left and right columns
+			if valid_with_router(i, cell_col - dist):  # left column
+				return (i, cell_col - dist)
+			if valid_with_router(i, cell_col + dist):  # right column
+				return (i, cell_col + dist)
+
+		for j in np.arange(start=cell_col - dist + 1, stop=cell_col + dist,
+						   step=1):  # iterating upper and bottom rows , skipping elements alredy iterated before
+			if valid_with_router(cell_row - dist, j):  # upper row
+				return (cell_row - dist, j)
+			if valid_with_router(cell_row + dist, j):  # bottom row
+				return (cell_row + dist, j)
+

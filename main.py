@@ -33,11 +33,14 @@ def main(args):
             building_matrix=building_matrix,
             population=[
                 utils.get_random_router_placement(building_matrix, 5),
+                utils.get_random_router_placement(building_matrix, 5),
+                utils.get_random_router_placement(building_matrix, 5),
                 utils.get_random_router_placement(building_matrix, 5)
             ],
+            data=data,
             fitness_function=fitness_function,
             mutation_probability=0.5,
-            max_iter=1,
+            max_iter=10,
             verbose=True
         )
     elif algorithm == "annealing":
@@ -64,10 +67,7 @@ def main(args):
         best_configuration,
         data.backbone_cost
     )
-    print(f"nodes graph: {len(g.nodes())}")
-    print(len(list(zip(*np.nonzero(best_configuration)))))
-    #import networkx as nx
-    #nx.write_edgelist(g, "test.txt", delimiter="-")
+
     print(f"coverage = {utils.get_number_covered_cells(best_configuration, data.matrix, data.router_range)/data.target_area}")
     print("total score", utils.compute_fitness(
         building_matrix=building_matrix,
@@ -91,8 +91,6 @@ def main(args):
         router_radius
     )
     """
-    #print(list(zip(*np.nonzero(best_configuration))))
-    #print(data.initial_backbone)
     viz.plot_complete(
         building_matrix,
         best_configuration,
