@@ -1,137 +1,11 @@
 import numpy as np
 import random
 from concurrent.futures import ProcessPoolExecutor
-from classes import PriorityDict, Cell
-import utils
+from classes import PrioritySolution
 import Data
 
 
 __all__ = ["genetic_algorithm"]
-
-
-def init_pri_dic(
-		building_matrix: np.array,
-		routers_placement: np.array,
-		router_range: int
-) -> PriorityDict:
-	"""
-	Initialize the dictionary with the order on the values such that for each target cell of the matrix there is an entry in the dictionary
-	"""
-	# we want to add each cell of the grid and then update the coverage level
-	pri_dict = PriorityDict()
-
-	# add all the target coords to the priority dict
-	target_coords = np.nonzero(building_matrix == ".")
-	for (i, j) in zip(target_coords[0], target_coords[1]):
-		pri_dict.add_element((i, j))
-
-	# iterate the router and update the nearby cells
-	router_coords = routers_placement.nonzero()
-	for (i, j) in zip(router_coords[0], router_coords[1]):  # for each router
-
-		# filter points covered by walls and void cells
-		points_covered_by_router = utils.filter_non_target_points(
-			building_matrix=building_matrix,
-			router_coords=(i, j),
-			points=utils.get_points_around_router(
-				matrix=building_matrix,
-				router_coords=(i, j),
-				router_radius=router_range
-			)
-		)
-
-		for (x, y) in points_covered_by_router:  # for each point (cell) covered by the router
-			pri_dict.edit_element((x, y), 1)
-
-	pri_dict.shuffle()
-	pri_dict.order()
-
-	return pri_dict
-
-
-def _update_neighbor(
-		pri_dic: PriorityDict,
-		building_matrix: np.array,
-		router: tuple[int, int],
-		router_range: int,
-		delta: int
-):
-	"""
-	Given a router position and a delta value, update the coverage value of all the cells covered by the router with the delta, the walls are taken into account
-	:param router: tuple of two int, the position of the router
-	:param delta: int, the delta to apply to the near cells
-	"""
-	x, y = router
-
-	points_covered_by_router = utils.filter_non_target_points(
-		building_matrix=building_matrix,
-		router_coords=(x, y),
-		points=utils.get_points_around_router(
-			matrix=building_matrix,
-			router_coords=(x, y),
-			router_radius=router_range
-		)
-	)
-	for (x, y) in points_covered_by_router:  # for each point (cell) covered by the router
-		pri_dic.edit_element((x, y), delta=delta)  # edit the point
-
-
-def _state_neighbor(
-		pri_dic: PriorityDict,
-		building_matrix: np.array,
-		routers_placement: np.array,
-		router_range: int,
-		move_type: str
-) -> np.array:
-	"""
-	Given a move type, returns the new state in the solution space.
-	If the move is 'add' a new router will be add in the less covered cell,
-	if the move is 'remove' the nearest router to the most covered cell will be removed
-	:param move_type: string, the type of move to perform, if it is not supported, a random move will be performed
-	:returns: np.array, the new state
-	"""
-
-	supported_moves = ["add", "remove"]
-
-	new_state = np.copy(routers_placement)
-
-	if move_type not in supported_moves:
-		move_type = random.choice(supported_moves)
-
-	if move_type == "add":  # add one router
-		while True:
-			x, y = pri_dic.get_lower()  # the cell with less coverage
-			if routers_placement[x][y] == 0:  # there is not another router in that cell
-				new_state[x][y] = 1
-				break
-
-		# we have to update the near cells
-		_update_neighbor(
-			pri_dic=pri_dic,
-			building_matrix=building_matrix,
-			router=(x, y),
-			router_range=router_range,
-			delta=+1
-		)
-
-	elif move_type == "remove":  # remove one router
-		target = pri_dic.get_higer()  # the cell with most coverage
-		to_remove = utils.get_nearest_router(cell=target, routers=routers_placement)
-		x, y = to_remove
-		new_state[x][y] = 0
-
-		# we have to update the near cells
-		_update_neighbor(
-			pri_dic=pri_dic,
-			building_matrix=building_matrix,
-			router=(x, y),
-			router_range=router_range,
-			delta=-1
-		)
-	else:
-		pass
-
-	return new_state
 
 def mutate(
 		building_matrix: np.array,
@@ -143,7 +17,7 @@ def mutate(
 
 	:return: the new routers placement
 	"""
-	pri_dic = init_pri_dic(building_matrix, routers_placement, router_range)
+	pri_dic = PrioritySolution.init_pri_dic(building_matrix, routers_placement, router_range)
 	pri_dic.shuffle()  # shuffle priority dict
 	pri_dic.order()  # ordinate priority dict
 
@@ -151,7 +25,7 @@ def mutate(
 	_, out_of_budget = fitness_function(routers_placement)
 
 	move_type = "remove" if out_of_budget else "add"
-	return _state_neighbor(
+	return PrioritySolution._state_neighbor(
 		pri_dic=pri_dic,
 		building_matrix=building_matrix,
 		routers_placement=routers_placement,

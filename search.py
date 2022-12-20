@@ -5,7 +5,7 @@ from enum import Enum
 from utils import get_number_covered_cells
 from utils import get_points_around_router
 from utils import filter_non_target_points
-from utils import print_routers
+#from utils import print_routers
 
 class NotValidPolicyExcception(Exception):
     pass
