@@ -9,6 +9,26 @@ __all__ = [
 ]
 
 
+def cut_exceeding_leaves(
+	g_original: nx.Graph,
+	terminal_nodes: list[tuple]
+) -> nx.Graph:
+	"""
+	Optimizes the original backbone graph by breaking loops and removing exceeding non terminals routers
+
+	:param g_original: the original graph to be optimized
+	:param terminal_nodes: list, the list containing the terminal nodes (routers and backbone initial starting point)
+	:return: a optimized copy of the original graph
+	"""
+	g = nx.minimum_spanning_tree(g_original)
+
+	leaf_nodes = [node for node in g.nodes() if g.degree(node) == 1 and node not in terminal_nodes]
+	while leaf_nodes != []:
+		g.remove_nodes_from(leaf_nodes)
+		leaf_nodes = [node for node in g.nodes() if g.degree(node) == 1 and node not in terminal_nodes]
+
+	return g
+
 def get_chebyshev_distance(point1: tuple, point2: tuple):
 	x1, y1 = point1
 	x2, y2 = point2
@@ -62,11 +82,7 @@ def get_backbone_graph(
 	g = get_grid_graph(routers_placement.shape, backbone_unit_cost)
 
 	# finding routers coordinates inside the matrix
-	rows, columns = np.nonzero(routers_placement)
-	routers_coords = [
-		(x, y)
-		for (x, y) in zip(rows, columns)
-	]
+	routers_coords = list(zip(*np.nonzero(routers_placement)))
 
 	# for each router, searching the shortest path
 	for router in routers_coords:
@@ -90,8 +106,9 @@ def get_backbone_graph(
 	nodes_to_remove = [node for node in g.nodes() if g.degree[node] == 0]
 	g.remove_nodes_from(nodes_to_remove)
 
-	return g
-
+	# optimizing the graph by removing loops
+	terminal_coords = list(itertools.chain(routers_coords, [backbone_starting_point]))
+	return cut_exceeding_leaves(g, terminal_coords)
 
 def get_backbone_length(
 		backbone_starting_point: tuple,
