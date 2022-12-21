@@ -11,9 +11,11 @@ import matplotlib.pyplot as plt
 
 def hill_climb(
         data: Data,
+        fitness_function,
         random_init=1,
         max_step=1,
-        policy="best"
+        policy="best",
+        verbose=False
 ):
     """the hill climbing algorithm for router placement
 
@@ -26,6 +28,7 @@ def hill_climb(
     Returns:
         list: a list of routers coordinates
     """
+    max_score = 0
     for j in range(random_init):
         print(f"-------------------RANDOM INIT, iteration: {j}------------------")
         data.random_init(num_routers=1)
@@ -34,7 +37,7 @@ def hill_climb(
         #print_routers(data.matrix, data.router_list)
         starting_score = get_number_covered_cells(router_mask, data.matrix, data.router_range)
         print("STARTING SCORE: ", starting_score)
-        max_score = 0
+        
         best_routers_settings = None
         i = 0
         
@@ -57,7 +60,7 @@ def hill_climb(
         
         scores = [starting_score]
         while i < max_step:
-            improved = search.optimization_step(policy, verbose=True)
+            improved = search.optimization_step(policy, verbose=verbose)
             print("\tnew score: {}".format(starting_score+improved))
             starting_score += improved
             scores.append(starting_score)
@@ -72,11 +75,12 @@ def hill_climb(
         plt.xlabel("step")
         plt.ylabel("score")
         plt.show()
-        temp_score = get_number_covered_cells(router_mask, data.matrix, data.router_range)
-        if temp_score == data.target_area :
-            max_score = temp_score
-            best_routers_settings = copy(map_mask)
-            break
+        temp_score, out_badget = fitness_function(map_mask)
+        
+        # if temp_score == data.target_area :
+        #     max_score = temp_score
+        #     best_routers_settings = copy(map_mask)
+        #     break
         if temp_score > max_score:
             max_score = temp_score
             best_routers_settings = copy(map_mask)
