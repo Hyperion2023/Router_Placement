@@ -1,21 +1,18 @@
-import math
 import random as rm
-import utils
 import numpy as np
-import Data
+from classes import Data
 
 __all__ = ["simulated_annealing"]
 
 
 def state_neighbor(current_state : np.array, building_matrix : np.array, move_type : str, verbose : bool):
     
-    supported_moves = ["add", "remove"] # TODO add the router movement
+    supported_moves = ["add", "remove"]
 
     new_state = new_state = np.copy(current_state)
 
     if (move_type not in supported_moves):
-        move_type = rm.choices(supported_moves)
-        move_type = move_type[0]
+        move_type = rm.choice(supported_moves)
 
     if verbose:
         print("\t\tnew state type: ", move_type)
@@ -38,24 +35,10 @@ def state_neighbor(current_state : np.array, building_matrix : np.array, move_ty
         rand_column = router_coords[1][random_coord]
         new_state[rand_row][rand_column] = 0
 
-    #elif move_type == "move": # move one router
-    #    router_coords = current_state.nonzero()
-    #    if len(router_coords[0]) == 0:
-    #        return current_state
-    #    
-    #    random_coord = rm.randrange(0, len(router_coords[0]))
-    #    rand_row = router_coords[0][random_coord]
-    #    rand_column = router_coords[1][random_coord]
-    
     else:
         pass
         
     return new_state
-
-
-   
-
-    
 
 
 def simulated_annealing(

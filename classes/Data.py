@@ -18,9 +18,6 @@ class Data:
 
 
     """
-
-    
-    
     def __init__(self, file_path : str):
         
         with open(file_path, "r") as f:
@@ -41,6 +38,7 @@ class Data:
                 python_matrix.append([str(c) for c in line][:len(line)-1])
             
             self.matrix = np.array(python_matrix, dtype=str)
+            self.building_matrix = self.matrix
             
             self.target_area = np.count_nonzero(self.matrix == ".")
             self.coverage_mask = np.full((self.height, self.width), False, dtype=bool)
@@ -76,5 +74,3 @@ class Data:
         for router in self.router_list:
             mask[router[0], router[1]] = 1
         return mask
-    
-        
