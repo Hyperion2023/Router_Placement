@@ -459,7 +459,7 @@ class Search:
         best_improve = 0
         if (self.cached_move_set is not None):
             best_move_set = self.do_cached()
-            if best_move_set is not None:
+            if len(best_move_set) == 3 :
                 return best_move_set                
         
         boundary = self.map_mask.shape
@@ -506,7 +506,7 @@ class Search:
         Returns:
             np.array, int: the coordinate for the new router and how much new points is possibile to cover
         """
-        covered_cells = set(self.covered_dict.keys())
+        covered_cells = set([key for key, value in self.covered_dict.items() if value > 0])
         target_coord = set(self.target_coords)
         # for i, row in enumerate(self.building_matrix):
         #     for j, item in enumerate(row):
@@ -530,7 +530,7 @@ class Search:
                 wait = 0
             else:
                 wait+=1
-            if max_increment == self.range**2 or wait == patient:
+            if max_increment == (self.range*2 + 1)**2 or wait == patient:
                 return max_increment_coord, max_increment
         return max_increment_coord, max_increment
     def remove_router(self):
@@ -539,7 +539,7 @@ class Search:
         # how can we test if removing a router is worth?
         pass
     
-    def optimization_step(self, policy, verbose=0):
+    def optimization_step(self, policy, verbose=False):
         """
         second stupid implementation
         
@@ -574,11 +574,15 @@ class Search:
                 self.router_list = np.append(self.router_list, pair[0], axis=0)
                 move_set = (len(self.router_list)-1, Action.ADD, pair[1])
                 print(f"number of router: {len(self.router_list)}")
+                self.cached_move_set = move_set
             else:
+                self.cached_move_set = None
                 print("fail")
                 return 0
+        else:
+            self.cached_move_set = move_set
         self.update(move_set)
-        self.cached_move_set = move_set
+        # self.cached_move_set = move_set
 
         if verbose:
             print("\trouter: {}\t action:{}\n\tscore improved by: {}".format(move_set[0], move_set[1], move_set[2]))

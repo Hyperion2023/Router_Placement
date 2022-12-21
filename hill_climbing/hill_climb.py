@@ -7,12 +7,15 @@ from hill_climbing.search import Policy
 from hill_climbing.search import Search
 from utils import get_number_covered_cells 
 from utils import print_routers
+import matplotlib.pyplot as plt
 
 def hill_climb(
         data: Data,
-        random_init=10,
-        max_step=10,
-        policy="best"
+        fitness_function,
+        random_init=1,
+        max_step=1,
+        policy="best",
+        verbose=False
 ):
     """the hill climbing algorithm for router placement
 
@@ -25,6 +28,7 @@ def hill_climb(
     Returns:
         list: a list of routers coordinates
     """
+    max_score = 0
     for j in range(random_init):
         print(f"-------------------RANDOM INIT, iteration: {j}------------------")
         data.random_init(num_routers=1)
@@ -33,7 +37,7 @@ def hill_climb(
         #print_routers(data.matrix, data.router_list)
         starting_score = get_number_covered_cells(router_mask, data.matrix, data.router_range)
         print("STARTING SCORE: ", starting_score)
-        max_score = 0
+        
         best_routers_settings = None
         i = 0
         
@@ -54,27 +58,34 @@ def hill_climb(
         else:
             policy = Policy.GREEDY
         
+        scores = [starting_score]
         while i < max_step:
-            improved = search.optimization_step(policy, verbose=True)
+            improved = search.optimization_step(policy, verbose=verbose)
             print("\tnew score: {}".format(starting_score+improved))
             starting_score += improved
+            scores.append(starting_score)
             if improved == 0:
                 i += 1
             else:
                 i = 0
             if starting_score ==  len(data.target_coords):
                 break
-        temp_score = get_number_covered_cells(router_mask, data.matrix, data.router_range)
-        if temp_score == data.target_area :
-            best_routers_settings = copy(data.router_list)
-            break
+        plt.plot(scores)
+        plt.title(f"Iteration: {j}")
+        plt.xlabel("step")
+        plt.ylabel("score")
+        plt.show()
+        temp_score, out_badget = fitness_function(map_mask)
+        
+        # if temp_score == data.target_area :
+        #     max_score = temp_score
+        #     best_routers_settings = copy(map_mask)
+        #     break
         if temp_score > max_score:
-            best_routers_settings = copy(data.router_list)
-        print(f"ITERATION: {j} \n FINAL SCORE: {temp_score}")
-
-    matrix = np.zeros(shape=data.building_matrix.shape)
-    for elem in best_routers_settings:
-        matrix[elem[0]][elem[1]] = 1
-
-    #return best_routers_settings
-    return matrix
+            max_score = temp_score
+            best_routers_settings = copy(map_mask)
+        # print("ITERATION: {} \n FINAL SCORE: {}".format(j, temp_score))
+            
+    # print("FINAL CONFIGURATION: ")
+    return best_routers_settings
+    # print_routers(data.matrix, best_routers_settings)

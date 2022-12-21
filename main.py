@@ -67,9 +67,11 @@ def main(args):
 	elif algorithm == "hill":
 		best_configuration = hill_climb(
 			data=data,
-			random_init=10,
-			max_step=50,
-			policy="best"
+            fitness_function=fitness_function,
+			random_init=1,
+			max_step=5,
+			policy="best",
+            verbose=True
 		)
 	else:
 		print("The selected algorithm does not exist!")
