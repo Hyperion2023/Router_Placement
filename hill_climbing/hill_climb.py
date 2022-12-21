@@ -2,11 +2,8 @@ import os, sys
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from classes.Data import Data
 from copy import copy
-import numpy as np
-from hill_climbing.search import Policy
-from hill_climbing.search import Search
-from utils import get_number_covered_cells 
-from utils import print_routers
+from hill_climbing.search import Policy, Search
+from utils import get_number_covered_cells
 import matplotlib.pyplot as plt
 
 def hill_climb(
@@ -21,8 +18,8 @@ def hill_climb(
 
     Args:
         data (Data): data for the router placement
-        random_init (int, optional): numebr of random initialization of the hill climbing. Defaults to 10.
-        max_step (int, optional): max non improvement step. Defaults to 10.
+        random_init (int, optional): numebr of random initialization of the hill climbing. Defaults to 1.
+        max_step (int, optional): max non improvement step. Defaults to 1.
         policy (str, optional): the policy for the improving. Defaults to "best".
 
     Returns:
@@ -88,4 +85,3 @@ def hill_climb(
             
     # print("FINAL CONFIGURATION: ")
     return best_routers_settings
-    # print_routers(data.matrix, best_routers_settings)

@@ -135,7 +135,7 @@ def genetic_algorithm(
 
 	for i in range(max_iter):  # iterate until some individual is fit enough, or enough time has elapsed
 		if verbose:
-			print(f"ITERATION {i}")
+			print(f"ITERATION {i}/{max_iter}")
 
 		# weight each population member by fitness function
 		best_individual_in_population, weighted_population = get_weight_population_by_fitness(population, fitness_function)

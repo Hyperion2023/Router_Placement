@@ -42,7 +42,6 @@ def state_neighbor(current_state : np.array, building_matrix : np.array, move_ty
 
 
 def simulated_annealing(
-        data: Data,
         initial_state : np.array, 
         number_iterations : int, 
         initial_temperature : int, 
