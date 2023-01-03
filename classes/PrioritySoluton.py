@@ -154,8 +154,8 @@ class PrioritySolution:
 
 	def run(
 			self,
-			num_iterations : int,
-			evaluation_delay: int
+			num_iterations : int = 50,
+			evaluation_delay: int = 5
 	) -> np.array:
 
 		""""

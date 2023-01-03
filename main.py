@@ -11,98 +11,99 @@ from simulated_annealing import simulated_annealing
 
 def main(args):
 	# parsing command line arguments
-	filepath = args.filepath
-	algorithm = args.algorithm
-	num_iterations = args.iterations
-	verbose = args.verbose
+    filepath = args.filepath
+    algorithm = args.algorithm
+    num_iterations = args.iterations
+    scale_factor = args.scale_factor
+    verbose = args.verbose
 
-	data = Data(filepath)
+    data = Data(filepath)
 
-	fitness_function = lambda routers: utils.compute_fitness(
-		building_matrix=building_matrix,
-		routers_placement=routers,
-		router_range=data.router_range,
-		backbone_starting_point=data.initial_backbone,
-		router_cost=data.router_cost,
-		backbone_cost=data.backbone_cost,
-		budget=data.budget
-	)
+    fitness_function = lambda routers: utils.compute_fitness(
+        building_matrix=building_matrix,
+        routers_placement=routers,
+        router_range=data.router_range,
+        backbone_starting_point=data.initial_backbone,
+        router_cost=data.router_cost,
+        backbone_cost=data.backbone_cost,
+        budget=data.budget
+    )
 
-	building_matrix = data.matrix
-	router_radius = data.router_range
+    building_matrix = data.matrix
+    router_radius = data.router_range
 
-	if algorithm == "genetic":
-		best_configuration = genetic_algorithm(
-			building_matrix=building_matrix,
-			population=[
-				utils.get_grid_router_placement(data=data, rescale_range_factor=0.6),
-				utils.get_grid_router_placement(data=data, rescale_range_factor=0.6)
-			],
-			data=data,
-			fitness_function=fitness_function,
-			mutation_probability=args.mutation,
-			max_iter=num_iterations,
-			verbose=verbose
-		)
-	elif algorithm == "priority":
-		best_configuration = priority(
-			data = data,
-			initial_state=utils.get_grid_router_placement(data=data, rescale_range_factor=0.6),
-			fitness_function=fitness_function,
-			num_iterations=num_iterations,
-			evaluation_delay=args.evaluation_delay,
-			verbose=verbose
-		)
-	elif algorithm == "annealing":
-		best_configuration = simulated_annealing(
-			initial_state=utils.get_random_router_placement(
-				building_matrix=building_matrix,
-				number_routers= int(1.2 * utils.min_routers_optimal_condition(data=data))
-			),
-			number_iterations=num_iterations,
-			initial_temperature=args.temperature,
-			building_matrix=building_matrix,
-			fitness_function=fitness_function,
-			sigma=router_radius,
-			verbose=verbose
-		)
-	elif algorithm == "hill":
-		best_configuration = hill_climb(
-			data=data,
+    if algorithm == "genetic":
+        best_configuration = genetic_algorithm(
+            building_matrix=building_matrix,
+            population=[
+                utils.get_grid_router_placement(data=data, rescale_range_factor=0.6),
+                utils.get_grid_router_placement(data=data, rescale_range_factor=0.6)
+            ],
+            data=data,
             fitness_function=fitness_function,
-			random_init=args.random_init,
-			max_step=args.max_step,
-			policy="best" if args.best_policy else "",
+            mutation_probability=args.mutation,
+            max_iter=num_iterations,
             verbose=verbose
-		)
-	else:
-		return
+        )
+    elif algorithm == "priority":
+        best_configuration = priority(
+            data = data,
+            initial_state=utils.get_grid_router_placement(data=data, rescale_range_factor=scale_factor),
+            fitness_function=fitness_function,
+            num_iterations=num_iterations,
+            evaluation_delay=args.evaluation_delay,
+            verbose=verbose
+        )
+    elif algorithm == "annealing":
+        best_configuration = simulated_annealing(
+            initial_state=utils.get_random_router_placement(
+                building_matrix=building_matrix,
+                number_routers= int(1.2 * utils.min_routers_optimal_condition(data=data))
+            ),
+            number_iterations=num_iterations,
+            initial_temperature=args.temperature,
+            building_matrix=building_matrix,
+            fitness_function=fitness_function,
+            sigma=router_radius,
+            verbose=verbose
+        )
+    elif algorithm == "hill":
+        best_configuration = hill_climb(
+            data=data,
+            fitness_function=fitness_function,
+            random_init=args.random_init,
+            max_step=args.max_step,
+            policy="best" if args.best_policy else "",
+            verbose=verbose
+        )
+    else:
+        return
 
-	g = backbone.get_backbone_graph(
-		data.initial_backbone,
-		best_configuration,
-		data.backbone_cost
-	)
+    g = backbone.get_backbone_graph(
+        data.initial_backbone,
+        best_configuration,
+        data.backbone_cost
+    )
 
-	print(f"coverage = {utils.get_number_covered_cells(best_configuration, data.matrix, data.router_range)/data.target_area}")
-	print("total score", utils.compute_fitness(
-		building_matrix=building_matrix,
-		routers_placement=best_configuration,
-		router_range=data.router_range,
-		backbone_starting_point=data.initial_backbone,
-		router_cost=data.router_cost,
-		backbone_cost=data.backbone_cost,
-		budget=data.budget
-	) )
+    print(f"coverage = {utils.get_number_covered_cells(best_configuration, data.matrix, data.router_range)/data.target_area}")
+    print("total score", utils.compute_fitness(
+        building_matrix=building_matrix,
+        routers_placement=best_configuration,
+        router_range=data.router_range,
+        backbone_starting_point=data.initial_backbone,
+        router_cost=data.router_cost,
+        backbone_cost=data.backbone_cost,
+        budget=data.budget
+    ) )
 
-	viz.plot_complete(
-		building_matrix,
-		best_configuration,
-		router_radius,
-		[_ for _ in g.nodes()],
-		data.initial_backbone
-	)
-	plt.show()
+    viz.plot_complete(
+        building_matrix,
+        best_configuration,
+        router_radius,
+        [_ for _ in g.nodes()],
+        data.initial_backbone
+    )
+    plt.show()
 
 def check_args(args) -> bool:
 	if args.algorithm not in ["hill", "annealing", "genetic", "priority"]:
@@ -136,75 +137,83 @@ def check_args(args) -> bool:
 	return True
 
 if __name__  == "__main__":
-	parser = argparse.ArgumentParser()
-	parser.add_argument("filepath", help="Path to the dataset to use")
-	parser.add_argument(
-		"algorithm",
-		help="Algorithm to use for solving the problem; the possible algorithms are {genetic, priority, annealing, hill}"
-	)
-	parser.add_argument(
-		"-i",
-		"--iterations",
-		help="""Number of iterations that the algorithm has to perform.
-			 This parameter is useful only for the following algorithms: {genetic, priority, annealing}
-			 """,
-		type=int,
-		default=10
-	)
-	parser.add_argument(
-		"--mutation",
-		help="""Probability thar a random mutation occurs in the genetic algorithm;
-			This parameter is a number between 0.0 and 1.0 and is useful only for the {genetic} algorithm
-			""",
-		type=float,
-		default=0.5
-	)
-	parser.add_argument(
-		"-t",
-		"--temperature",
-		help="""Initial temperature for the simulated annealing algorithm;
-				This parameter is a positive value and is useful only for the {annealing} algorithm
-				""",
-		type=float,
-		default=1000
-	)
-	parser.add_argument(
-		"-d",
-		"--evaluation_delay",
-		help="""How often perform the internal operations to compute the coverage evaluation;
-				This parameter is a positive value and is useful only for the {priority} algorithm
-				""",
-		type=int,
-		default=3
-	)
-	parser.add_argument(
-		"-r",
-		"--random_init",
-		help="""Number of random initialization of the hill climbing;
-				This parameter is a positive value and is useful only for the {hill} algorithm
-				""",
-		type=int,
-		default=1
-	)
-	parser.add_argument(
-		"--max_step",
-		help="""Maximum number of non improvement step;
-				This parameter is a positive value and is useful only for the {hill} algorithm
-				""",
-		type=int,
-		default=1
-	)
-	parser.add_argument(
-		"-b",
-		"--best_policy",
-		help="""Select the "best movement" as policy for the improving in each iteration:
-				This parameter is useful only for the {hill} algorithm
-				""",
-		action="store_true"
-	)
-	parser.add_argument("--verbose", help="increase output verbosity", action="store_true")
+    parser = argparse.ArgumentParser()
+    parser.add_argument("filepath", help="Path to the dataset to use")
+    parser.add_argument(
+        "algorithm",
+        help="Algorithm to use for solving the problem; the possible algorithms are {genetic, priority, annealing, hill}"
+    )
+    parser.add_argument(
+        "-i",
+        "--iterations",
+        help="""Number of iterations that the algorithm has to perform.
+                This parameter is useful only for the following algorithms: {genetic, priority, annealing}
+                """,
+        type=int,
+        default=10
+    )
+    parser.add_argument(
+        "--mutation",
+        help="""Probability thar a random mutation occurs in the genetic algorithm;
+            This parameter is a number between 0.0 and 1.0 and is useful only for the {genetic} algorithm
+            """,
+        type=float,
+        default=0.5
+    )
+    parser.add_argument(
+        "-t",
+        "--temperature",
+        help="""Initial temperature for the simulated annealing algorithm;
+                This parameter is a positive value and is useful only for the {annealing} algorithm
+                """,
+        type=float,
+        default=1000
+    )
+    parser.add_argument(
+        "-d",
+        "--evaluation_delay",
+        help="""How often perform the internal operations to compute the coverage evaluation;
+                This parameter is a positive value and is useful only for the {priority} algorithm
+                """,
+        type=int,
+        default=3
+    )
+    parser.add_argument(
+        "-r",
+        "--random_init",
+        help="""Number of random initialization of the hill climbing;
+                This parameter is a positive value and is useful only for the {hill} algorithm
+                """,
+        type=int,
+        default=1
+    )
+    parser.add_argument(
+        "--max_step",
+        help="""Maximum number of non improvement step;
+                This parameter is a positive value and is useful only for the {hill} algorithm
+                """,
+        type=int,
+        default=1
+    )
+    parser.add_argument(
+        "-b",
+        "--best_policy",
+        help="""Select the "best movement" as policy for the improving in each iteration:
+                This parameter is useful only for the {hill} algorithm
+                """,
+        action="store_true"
+    )
+    parser.add_argument(
+        "-s",
+        "--scale_factor",
+        help="""How dense the router placement should be in the grid inizialization
+            """,
+        type=float, 
+        default=0.7
+    )
+    parser.add_argument("--verbose", help="increase output verbosity", action="store_true")
 
-	args = parser.parse_args()
+    args = parser.parse_args()
 
-	if check_args(args):
-		main(args)
+    if check_args(args):
+        main(args)
