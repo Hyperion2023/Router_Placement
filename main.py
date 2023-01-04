@@ -56,10 +56,7 @@ def main(args):
         )
     elif algorithm == "annealing":
         best_configuration = simulated_annealing(
-            initial_state=utils.get_random_router_placement(
-                building_matrix=building_matrix,
-                number_routers= int(1.2 * utils.min_routers_optimal_condition(data=data))
-            ),
+            initial_state=utils.get_grid_router_placement(data=data, rescale_range_factor=scale_factor),
             number_iterations=num_iterations,
             initial_temperature=args.temperature,
             building_matrix=building_matrix,

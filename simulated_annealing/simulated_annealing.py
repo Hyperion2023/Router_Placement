@@ -1,6 +1,7 @@
 import random as rm
 import numpy as np
 from classes import Data
+import sys
 
 __all__ = ["simulated_annealing"]
 
@@ -83,6 +84,7 @@ def simulated_annealing(
         new_fitness, out_budget = fitness_function(new_state)
         if out_budget:
             print("out of budget")
+            new_fitness = - sys.maxsize
         delta_fitness = new_fitness - currennt_fitness
        
         if delta_fitness >= 0: # new state is better
