@@ -1,6 +1,7 @@
 import matplotlib.pyplot as plt
 import numpy as np
 import utils
+from os.path import splitext, basename
 
 def plot_solution(
 		building_matrix: np.array,
@@ -107,6 +108,8 @@ def plot_complete(
 		router_radius: int,
 		backbone_nodes: list = [],
 		backbone_starting_point: tuple = (),
+		filepath : str = None,
+		algorithm : str = None
 ):
 	"""
 	Plots the building planimetry (and routers placement) alongside the covered area of the building
@@ -137,5 +140,8 @@ def plot_complete(
 		router_radius,
 		ax2
 	)
+
+	if filepath and algorithm:
+		plt.savefig(f"./{splitext(basename(filepath))[0]}_{algorithm}.png", format="png", dpi=500)
 
 	plt.show()

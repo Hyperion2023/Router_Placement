@@ -101,7 +101,9 @@ def main(args):
         best_configuration,
         router_radius,
         [_ for _ in g.nodes()],
-        data.initial_backbone
+        data.initial_backbone,
+        filepath=filepath,
+        algorithm=algorithm
     )
     plt.show()
 
